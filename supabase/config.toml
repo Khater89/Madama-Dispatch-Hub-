@@ -1,0 +1,18 @@
+project_id = "vuwdhcyiifyarveeqlwz"
+
+# Browser calls use an opaque sb_publishable_* key, not a JWT. Each function
+# validates the apikey header in-function, so gateway JWT verification is off.
+[functions.ai-assist]
+verify_jwt = false
+
+[functions.rank-technicians]
+verify_jwt = false
+
+[functions.import-technicians]
+verify_jwt = false
+
+[functions.sync-company-map]
+verify_jwt = false
+
+[functions.yelp-search]
+verify_jwt = false

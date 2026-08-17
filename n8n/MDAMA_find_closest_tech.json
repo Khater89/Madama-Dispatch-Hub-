@@ -1,0 +1,359 @@
+{
+  "name": "MDAMA – Find Closest Tech v2 Stable",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "find-closest-tech",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "350c3c70-4070-4924-8b67-2df9c16bf843",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        336,
+        -208
+      ],
+      "webhookId": "mdama-find-closest-tech"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body || $json.query || $json;\n\nconst clean = (v) => String(v ?? '').trim();\n\nconst trade = clean(body.trade);\nconst city = clean(body.city);\nconst state = clean(body.state).toUpperCase();\nconst zip = clean(body.zip_code || body.zip).replace(/\\D/g, '').slice(0, 5);\nconst wo = clean(body.wo_number);\n\nif (!trade) throw new Error('trade is required');\nif (!city && !zip) throw new Error('city or zip_code is required');\n\nreturn [{\n  json: {\n    wo_number: wo,\n    trade,\n    city,\n    state,\n    zip_code: zip,\n    nearby_radius_miles: 25,\n    max_adjacent_cities: 12\n  }\n}];"
+      },
+      "id": "0dc2cab0-f9df-4e77-9928-448bc9f4413c",
+      "name": "Normalize Live Search",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://nominatim.openstreetmap.org/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "format",
+              "value": "jsonv2"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            },
+            {
+              "name": "countrycodes",
+              "value": "us"
+            },
+            {
+              "name": "q",
+              "value": "={{ $('Normalize Live Search').first().json.city + ', ' + $('Normalize Live Search').first().json.state + ' ' + $('Normalize Live Search').first().json.zip_code }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "MDAMA-Dispatch/1.0"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "71749aa0-a142-4ffa-b6dd-f5c92bd2f131",
+      "name": "Find Base City",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        784,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('Normalize Live Search').first().json;\nconst r = $input.first().json;\nconst base = Array.isArray(r) ? r[0] : r;\n\nif (!base?.lat || !base?.lon) {\n  throw new Error(`Could not locate base city: ${ctx.city}, ${ctx.state}`);\n}\n\nconst radiusMeters = Math.round(Number(ctx.nearby_radius_miles || 25) * 1609.344);\n\nconst data = `[out:json][timeout:25];\n(\n  node[\"place\"~\"city|town|village\"](around:${radiusMeters},${Number(base.lat)},${Number(base.lon)});\n  way[\"place\"~\"city|town|village\"](around:${radiusMeters},${Number(base.lat)},${Number(base.lon)});\n  relation[\"place\"~\"city|town|village\"](around:${radiusMeters},${Number(base.lat)},${Number(base.lon)});\n);\nout center tags;`;\n\nreturn [{ json: { ...ctx, base_lat: Number(base.lat), base_lon: Number(base.lon), overpass_query: data } }];"
+      },
+      "id": "5e3fcb5a-1f6d-4668-b960-64f52a87a8d6",
+      "name": "Build Nearby City Query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://overpass-api.de/api/interpreter",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "data",
+              "value": "={{ $json.overpass_query }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "0aeb7fe7-8140-4fa2-9d57-18f4c6e52e99",
+      "name": "Find Nearby Cities",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1232,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('Normalize Live Search').first().json;\nconst baseInfo = $('Build Nearby City Query').first().json;\nconst nearbyResponse = $input.first().json;\n\nconst trade = String(ctx.trade || '').trim();\nconst baseCity = String(ctx.city || '').trim();\nconst baseState = String(ctx.state || '').trim().toUpperCase();\nconst zip = String(ctx.zip_code || '').replace(/\\D/g,'').slice(0,5);\nconst wo = String(ctx.wo_number || '').trim();\n\nconst baseLat = Number(baseInfo.base_lat);\nconst baseLon = Number(baseInfo.base_lon);\nconst maxAdjacent = Number(ctx.max_adjacent_cities || 12);\nconst maxMiles = Number(ctx.nearby_radius_miles || 25);\n\nfunction clean(v){ return String(v || '').trim().replace(/\\s+/g,' '); }\nfunction rad(v){ return v * Math.PI / 180; }\nfunction miles(lat1,lon1,lat2,lon2){\n  const R=3958.7613, dLat=rad(lat2-lat1), dLon=rad(lon2-lon1);\n  const a=Math.sin(dLat/2)**2 + Math.cos(rad(lat1))*Math.cos(rad(lat2))*Math.sin(dLon/2)**2;\n  return 2*R*Math.asin(Math.sqrt(a));\n}\n\nconst cities = [{\n  city: baseCity, state: baseState, zip_code: zip,\n  latitude: baseLat, longitude: baseLon,\n  city_type: 'same_city', distance_miles: 0\n}];\n\nconst elements = Array.isArray(nearbyResponse.elements) ? nearbyResponse.elements : [];\nconst map = new Map();\n\nfor (const el of elements) {\n  const tags = el.tags || {};\n  const city = clean(tags.name || tags['name:en']);\n  if (!city) continue;\n\n  const lat = Number(el.lat ?? el.center?.lat);\n  const lon = Number(el.lon ?? el.center?.lon);\n  if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;\n\n  const d = miles(baseLat, baseLon, lat, lon);\n  if (d > maxMiles) continue;\n  if (city.toLowerCase() === baseCity.toLowerCase()) continue;\n\n  let state = clean(tags['addr:state'] || tags['is_in:state_code'] || baseState).toUpperCase();\n  if (state.length !== 2) state = baseState;\n\n  const key = city.toLowerCase() + '|' + state;\n  const row = {city,state,latitude:lat,longitude:lon,city_type:'adjacent_city',distance_miles:Math.round(d*10)/10};\n  if (!map.has(key) || row.distance_miles < map.get(key).distance_miles) map.set(key,row);\n}\n\ncities.push(...[...map.values()].sort((a,b)=>a.distance_miles-b.distance_miles).slice(0,maxAdjacent));\n\nconst templates = [\n  {platform:'general', build:loc => `${trade} ${loc}`},\n  {platform:'service', build:loc => `${trade} contractor service repair ${loc}`},\n  {platform:'facebook', build:loc => `site:facebook.com ${trade} ${loc}`},\n  {platform:'directories', build:loc => `${trade} ${loc} (site:yelp.com OR site:thumbtack.com OR site:angi.com OR site:homeadvisor.com)`}\n];\n\nconst searchedCities = cities.map(c => ({\n  city:c.city,state:c.state,type:c.city_type,distance_miles:c.distance_miles\n}));\n\nconst output = [];\nfor (const place of cities) {\n  const loc = `${place.city} ${place.state}`.trim();\n  for (const t of templates) {\n    output.push({json:{\n      wo_number:wo, trade,\n      base_city:baseCity, base_state:baseState, base_zip_code:zip,\n      city:place.city, state:place.state,\n      search_city:place.city, search_state:place.state,\n      city_type:place.city_type, distance_miles:place.distance_miles,\n      platform:t.platform,\n      q:t.build(loc).replace(/\\s+/g,' ').trim(),\n      search_meta:{\n        execution_mode:'single_n8n_execution',\n        cities_count:cities.length,\n        queries_count:cities.length*templates.length,\n        searched_cities:searchedCities\n      }\n    }});\n  }\n}\nreturn output;"
+      },
+      "id": "d939517b-09ef-497a-bf2a-efeb85355c02",
+      "name": "Build Queries",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1456,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://google.serper.dev/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-KEY",
+              "value": "13a98127e5e1b561610ea4f0c1789ff4d6942da7"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"q\": $json.q, \"gl\": \"us\", \"hl\": \"en\", \"num\": 10 } }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "e2da4a8a-b5b2-4e06-8fbd-88b9c5e739b2",
+      "name": "Serper Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1680,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const ctx = $('Build Queries').item.json;\nconst resp = $json || {};\nreturn { json: { ...ctx, organic: Array.isArray(resp.organic) ? resp.organic : [] } };"
+      },
+      "id": "698d60ea-d0cf-46f3-8d8f-b1fd5986e092",
+      "name": "Merge Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1904,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst all = $input.all();\nconst first = all[0]?.json || {};\n\nconst trade = String(first.trade || '').trim();\nconst baseCity = String(first.base_city || first.city || '').trim();\nconst baseState = String(first.base_state || first.state || '').trim();\nconst zip = String(first.base_zip_code || first.zip_code || '').trim();\nconst wo = String(first.wo_number || '').trim();\nconst meta = first.search_meta || {};\n\nfunction norm(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9+ ]/g,' ').replace(/\\s+/g,' ').trim(); }\n\nconst aliasMap = {\n  'hvac': ['hvac','heating','cooling','air conditioning','air conditioner','ac repair','furnace'],\n  'plumbing': ['plumbing','plumber','drain','sewer','pipe','toilet','faucet'],\n  'plumber': ['plumbing','plumber','drain','sewer','pipe','toilet','faucet'],\n  'electrical': ['electrical','electrician','electric','wiring','breaker','outlet'],\n  'electrician': ['electrical','electrician','electric','wiring','breaker','outlet'],\n  'handyman': ['handyman','maintenance','repair','general contractor'],\n  'locksmith': ['locksmith','lock','key','door hardware'],\n  'appliance': ['appliance','refrigerator','washer','dryer','oven','dishwasher'],\n  'glass repair': ['glass','window','storefront','glazier'],\n  'landscaping': ['landscaping','landscape','lawn','yard'],\n  'snow removal': ['snow removal','snow plow','plowing'],\n  'junk removal': ['junk removal','hauling','debris removal'],\n  'power wash': ['power wash','pressure wash','pressure washing']\n};\n\nconst tkey = norm(trade);\nconst aliases = aliasMap[tkey] || [tkey];\n\nfunction tradeMatches(text){\n  const x = norm(text);\n  return aliases.some(a => x.includes(norm(a)));\n}\n\nfunction normalizePhone(p){\n  let d=String(p||'').replace(/\\D/g,'');\n  if(d.length===11&&d[0]==='1') d=d.slice(1);\n  return d.length===10?d:'';\n}\nfunction findPhone(t){\n  const m=String(t||'').match(/(?:\\+?1[\\s.\\-]?)?\\(?([2-9]\\d{2})\\)?[\\s.\\-]?([2-9]\\d{2})[\\s.\\-]?(\\d{4})/);\n  return m ? normalizePhone(m[0]) : '';\n}\nfunction detectPlatform(link){\n  const l=String(link||'').toLowerCase();\n  if(l.includes('facebook.com/groups'))return 'facebook_group';\n  if(l.includes('facebook.com')||l.includes('fb.com'))return 'facebook_page';\n  if(l.includes('instagram.com'))return 'instagram';\n  if(l.includes('craigslist.org'))return 'craigslist';\n  if(l.includes('nextdoor.com'))return 'nextdoor';\n  if(l.includes('yelp.com'))return 'yelp';\n  if(l.includes('thumbtack.com'))return 'thumbtack';\n  if(l.includes('angi.com')||l.includes('angieslist.com'))return 'angi';\n  if(l.includes('homeadvisor.com'))return 'homeadvisor';\n  if(l.includes('bbb.org'))return 'bbb';\n  if(l.includes('google.com/maps'))return 'google_maps';\n  return 'website';\n}\nfunction soloScore(t,s){\n  const x=norm(`${t} ${s}`); let sc=30;\n  const plus=[[/\\bcall me\\b/,20],[/\\btext me\\b/,20],[/\\bdm me\\b/,18],[/\\bindependent\\b|\\bfreelance\\b/,20],[/\\bowner operator\\b|\\bowner operated\\b/,20],[/\\bself employed\\b/,15],[/\\bcontractor\\b/,10],[/\\btechnician\\b|\\btech\\b/,10],[/\\brepair\\b|\\bservice\\b/,6],[/\\bfamily owned\\b|\\blocal\\b/,8]];\n  const minus=[[/\\bfranchise\\b|\\bnationwide\\b/,-25],[/\\bhiring\\b|\\bcareers\\b/,-18]];\n  for(const [p,v] of plus) if(p.test(x)) sc+=v;\n  for(const [p,v] of minus) if(p.test(x)) sc+=v;\n  return Math.max(0,Math.min(100,sc));\n}\nfunction pBonus(p){ return {facebook_group:15,craigslist:15,nextdoor:12,facebook_page:10,instagram:8,thumbtack:12,angi:10,homeadvisor:10,yelp:8,google_maps:10,bbb:6,website:5}[p]||3; }\n\nconst seenPhone=new Set(), seenUrl=new Set(), rows=[];\nconst rejected={no_link:0,no_trade_match:0,dup:0};\n\nfor(const item of all){\n  const j=item.json||{};\n  const organic=Array.isArray(j.organic)?j.organic:[];\n  for(const r of organic){\n    const title=String(r.title||'').trim();\n    const snippet=String(r.snippet||'').trim();\n    const link=String(r.link||'').trim();\n    if(!link){rejected.no_link++;continue;}\n    if(link.includes('google.com/search')) continue;\n\n    const combined=`${title} ${snippet}`;\n    if(!tradeMatches(combined)){rejected.no_trade_match++;continue;}\n\n    const phone=findPhone(combined);\n    const urlKey=link.toLowerCase().replace(/\\/$/,'');\n    if(seenUrl.has(urlKey)){rejected.dup++;continue;}\n    if(phone && seenPhone.has(phone)){rejected.dup++;continue;}\n    seenUrl.add(urlKey);\n    if(phone) seenPhone.add(phone);\n\n    const platform=detectPlatform(link);\n    const solo=soloScore(title,snippet);\n    let score=solo+pBonus(platform)+(phone?15:0);\n\n    if(j.city_type==='same_city') score+=25;\n    else score+=Math.max(0,15-Number(j.distance_miles||0)/2);\n\n    rows.push({\n      name:title.replace(/\\s*\\|\\s*Facebook\\s*$/i,'').replace(/\\s*\\|\\s*Instagram\\s*$/i,'').trim(),\n      phone,\n      phone_normalized:phone,\n      phone_display:phone?`(${phone.slice(0,3)}) ${phone.slice(3,6)}-${phone.slice(6)}`:'',\n      source_url:link,\n      facebook_url:platform.startsWith('facebook')?link:'',\n      platform,\n      snippet,\n      solo_score:solo,\n      has_phone:!!phone,\n      rank_score:Math.round(score*10)/10,\n      trade,\n      city:j.search_city||j.city||'',\n      state:j.search_state||j.state||'',\n      city_type:j.city_type||'adjacent_city',\n      distance_miles:Number(j.distance_miles||0),\n      zip_code:zip,\n      wo_number:wo\n    });\n  }\n}\n\nrows.sort((a,b)=>{\n  const ca=a.city_type==='same_city'?0:1, cb=b.city_type==='same_city'?0:1;\n  if(ca!==cb) return ca-cb;\n  if(a.distance_miles!==b.distance_miles) return a.distance_miles-b.distance_miles;\n  return b.rank_score-a.rank_score;\n});\n\nreturn [{json:{\n  ok:rows.length>0,\n  count:rows.length,\n  wo_number:wo,\n  trade,\n  city:baseCity,\n  state:baseState,\n  zip_code:zip,\n  total_passed:rows.length,\n  rejected_summary:rejected,\n  searched_cities:meta.searched_cities||[],\n  cities_count:meta.cities_count||0,\n  queries_count:meta.queries_count||0,\n  message:rows.length?null:`No matching ${trade} results were found in the base or adjacent cities.`,\n  candidates:rows\n}}];\n"
+      },
+      "id": "537bb7e3-de2d-465a-bd6c-5df11771db94",
+      "name": "Rank",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2128,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "content-type"
+              }
+            ]
+          }
+        }
+      },
+      "id": "95c131b4-fcb5-462b-9c08-955b515eff81",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2352,
+        -208
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Live Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Live Search": {
+      "main": [
+        [
+          {
+            "node": "Find Base City",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Base City": {
+      "main": [
+        [
+          {
+            "node": "Build Nearby City Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Nearby City Query": {
+      "main": [
+        [
+          {
+            "node": "Find Nearby Cities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Nearby Cities": {
+      "main": [
+        [
+          {
+            "node": "Build Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Queries": {
+      "main": [
+        [
+          {
+            "node": "Serper Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Serper Search": {
+      "main": [
+        [
+          {
+            "node": "Merge Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Context": {
+      "main": [
+        [
+          {
+            "node": "Rank",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rank": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "c288c178-b13b-4c60-b487-0287364098cb",
+  "meta": {
+    "instanceId": "d006ee69c9278070a02ff4c486af522b1dea4eaac825a806caff73bef53ff7e4"
+  },
+  "nodeGroups": [],
+  "id": "goFtrIN2F5C8EN0j",
+  "tags": []
+}
