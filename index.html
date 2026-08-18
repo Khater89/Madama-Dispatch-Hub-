@@ -1246,6 +1246,22 @@ input:focus,select:focus,textarea:focus{border-color:#31d6c4!important;box-shado
 .parallel-search-grid.focus-yelp #liveSearchPanel{padding:14px!important;opacity:.82}
 .search-source-panel.queue-active .search-results-scroll{max-height:220px}
 .quo-distance{font:900 12px var(--mono);white-space:nowrap;color:#8fe8d8}
+/* Step 20 — queue position, contacted history, and global failed-phone exclusion */
+.quo-row{cursor:pointer;transition:transform .16s ease,filter .16s ease,background .16s ease}
+.quo-row:hover>td{background:rgba(148,163,184,.065)!important}
+.quo-row-current>td{background:rgba(45,212,191,.14)!important;border-top:1px solid rgba(94,234,212,.32);border-bottom:1px solid rgba(94,234,212,.32)}
+.quo-row-current>td:first-child{box-shadow:inset 5px 0 0 #2dd4bf}
+.quo-row-current{filter:drop-shadow(0 0 8px rgba(45,212,191,.16))}
+.quo-row-contacted:not(.quo-row-current)>td{background:rgba(245,158,11,.09)!important}
+.quo-row-contacted:not(.quo-row-current)>td:first-child{box-shadow:inset 4px 0 0 #f59e0b}
+.quo-row-excluded>td{background:rgba(239,68,68,.08)!important;color:#9ca3af}
+.quo-row-excluded>td:first-child{box-shadow:inset 4px 0 0 #ef4444}
+.quo-row-excluded .quo-distance{color:#a8b0ba}
+.quo-current-chip,.quo-contacted-chip,.quo-excluded-chip{display:inline-flex;align-items:center;padding:3px 7px;border-radius:999px;font:900 9px var(--mono);letter-spacing:.055em;white-space:nowrap;margin-top:5px}
+.quo-current-chip{background:#123c37;color:#7ff3e0;border:1px solid #297568}
+.quo-contacted-chip{background:#422d0b;color:#ffd48a;border:1px solid #79531a}
+.quo-excluded-chip{background:#421a22;color:#ffb2bd;border:1px solid #7c303e}
+.quo-source-panel tbody tr:focus-visible{outline:2px solid #5eead4;outline-offset:-2px}
 @media(max-width:900px){
   .parallel-search-grid.focus-live,.parallel-search-grid.focus-yelp{grid-template-columns:1fr}
   .parallel-search-grid.focus-live #yelpSearchPanel,.parallel-search-grid.focus-yelp #liveSearchPanel{display:none!important}
@@ -3215,7 +3231,7 @@ function quoPhone(t){
 function quoEligibleCandidates(source=''){
   const pool=source==='live'?liveSearchCandidates:source==='yelp'?yelpSearchCandidates:candidates;
   const seen=new Set(),out=[];
-  for(const t of pool){if((source==='live'||source==='yelp')&&!withinSearchDisplayRadius(t))continue;const phone=quoPhone(t);if(!phone||seen.has(phone))continue;seen.add(phone);out.push({t,phone});}
+  for(const t of pool){if((source==='live'||source==='yelp')&&!withinSearchDisplayRadius(t))continue;if(isSearchPhoneExcluded(t))continue;const phone=quoPhone(t);if(!phone||seen.has(phone))continue;seen.add(phone);out.push({t,phone});}
   return out;
 }
 function compactOutreachPiece(value,max=240){
@@ -3297,6 +3313,52 @@ function phoneFindDigits(value){
   if(d.length>10&&d.startsWith('1'))d=d.slice(-10);
   return d;
 }
+const SEARCH_PHONE_EXCLUSION_LOCAL_KEY='mdama_search_phone_exclusions_v1';
+const QUO_CONTACTED_PHONE_LOCAL_KEY='mdama_quo_contacted_phones_v1';
+let excludedSearchPhones=(()=>{try{return new Set((JSON.parse(localStorage.getItem(SEARCH_PHONE_EXCLUSION_LOCAL_KEY)||'[]')||[]).map(phoneFindDigits).filter(x=>x.length===10));}catch{return new Set();}})();
+let globallyContactedPhones=(()=>{try{return new Set((JSON.parse(localStorage.getItem(QUO_CONTACTED_PHONE_LOCAL_KEY)||'[]')||[]).map(phoneFindDigits).filter(x=>x.length===10));}catch{return new Set();}})();
+let phoneExclusionsLastLoad=0,contactedPhonesLastLoad=0,phoneExclusionDbReady=true;
+function saveExcludedSearchPhonesLocal(){try{localStorage.setItem(SEARCH_PHONE_EXCLUSION_LOCAL_KEY,JSON.stringify([...excludedSearchPhones]));}catch{}}
+function saveContactedPhonesLocal(){try{localStorage.setItem(QUO_CONTACTED_PHONE_LOCAL_KEY,JSON.stringify([...globallyContactedPhones]));}catch{}}
+function isSearchPhoneExcluded(value){const phone=phoneFindDigits(typeof value==='object'?f(value,'phone','normalized_phone'):value);return phone.length===10&&excludedSearchPhones.has(phone);}
+function filterExcludedSearchCandidates(rows){return (rows||[]).filter(x=>!isSearchPhoneExcluded(x));}
+async function refreshSearchPhoneExclusions(force=false){
+  if(!force&&Date.now()-phoneExclusionsLastLoad<120000)return excludedSearchPhones;
+  phoneExclusionsLastLoad=Date.now();
+  try{
+    const rows=await req('/search_phone_exclusions?select=normalized_phone&limit=10000');
+    for(const x of (Array.isArray(rows)?rows:[])){const p=phoneFindDigits(f(x,'normalized_phone'));if(p.length===10)excludedSearchPhones.add(p);}
+    phoneExclusionDbReady=true;saveExcludedSearchPhonesLocal();
+  }catch(e){phoneExclusionDbReady=false;}
+  return excludedSearchPhones;
+}
+async function refreshGlobalContactedPhones(force=false){
+  if(!force&&Date.now()-contactedPhonesLastLoad<120000)return globallyContactedPhones;
+  contactedPhonesLastLoad=Date.now();
+  try{
+    const rows=await req('/quo_manual_routes?copied_at=not.is.null&select=technician_phone&limit=10000');
+    for(const x of (Array.isArray(rows)?rows:[])){const p=phoneFindDigits(f(x,'technician_phone'));if(p.length===10)globallyContactedPhones.add(p);}
+    saveContactedPhonesLocal();
+  }catch{}
+  return globallyContactedPhones;
+}
+function removeExcludedPhoneFromCurrentSearches(phone){
+  const p=phoneFindDigits(phone);if(p.length!==10)return;
+  liveSearchCandidates=liveSearchCandidates.filter(x=>phoneFindDigits(f(x,'phone','normalized_phone'))!==p);
+  yelpSearchCandidates=yelpSearchCandidates.filter(x=>phoneFindDigits(f(x,'phone','normalized_phone'))!==p);
+  renderParallelSearchPanels();
+}
+async function excludeSearchPhoneGlobally(row,source=''){
+  const phone=phoneFindDigits(row?.phone||row);if(phone.length!==10)return false;
+  excludedSearchPhones.add(phone);saveExcludedSearchPhonesLocal();removeExcludedPhoneFromCurrentSearches(phone);
+  const payload={normalized_phone:phone,phone:String(row?.phone||phone),technician_name:String(row?.name||'')||null,reason:'failed',source_kind:source||null,last_wo_number:String(v('won')||'')||null,failed_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+  Object.keys(payload).forEach(k=>payload[k]==null&&delete payload[k]);
+  try{
+    await req('/search_phone_exclusions?on_conflict=normalized_phone',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(payload)});
+    phoneExclusionDbReady=true;
+  }catch(e){phoneExclusionDbReady=false;}
+  return true;
+}
 function phoneMatchesQuery(phone,query){
   const p=phoneFindDigits(phone),q=phoneFindDigits(query);
   if(!q||!p)return false;
@@ -3353,51 +3415,89 @@ function quoState(source){return quoQueues[source==='yelp'?'yelp':'live'];}
 function quoPrefix(source){return source==='yelp'?'yelpQuo':'liveQuo';}
 function quoEl(source,suffix){return $(quoPrefix(source)+suffix);}
 function quoLocalKey(source){return 'mdama_quo_manual_'+source+'_'+String(v('won')||'draft').replace(/[^a-z0-9_-]/gi,'_');}
-function saveQuoQueueLocal(source){const st=quoState(source);try{localStorage.setItem(quoLocalKey(source),JSON.stringify({index:st.index,rows:st.rows.map(x=>({phone:x.phone,status:x.status}))}));}catch{}}
+function saveQuoQueueLocal(source){const st=quoState(source);try{localStorage.setItem(quoLocalKey(source),JSON.stringify({index:st.index,rows:st.rows.map(x=>({phone:x.phone,status:x.status,contacted:Boolean(x.contacted||globallyContactedPhones.has(phoneFindDigits(x.phone)))}))}));}catch{}}
 function loadQuoQueueLocal(source){try{const x=JSON.parse(localStorage.getItem(quoLocalKey(source))||'{}')||{};return {index:Number(x.index)||0,rows:Array.isArray(x.rows)?x.rows:[]};}catch{return {index:0,rows:[]};}}
 function quoStatusBadge(status){const cls=status==='accepted'||status==='sent'?'b-completed':status==='failed'?'b-vendor':'b-new';return `<span class="badge ${cls}">${esc(String(status||'pending').toUpperCase())}</span>`;}
+function quoRowContacted(row){const p=phoneFindDigits(row?.phone);return Boolean(row?.contacted||(p.length===10&&globallyContactedPhones.has(p))||row?.status==='copied');}
+function scrollCurrentQuoRow(source,behavior='smooth'){
+  const st=quoState(source);requestAnimationFrame(()=>requestAnimationFrame(()=>{const el=$(source+'QuoPhoneRow'+st.index);el?.scrollIntoView({behavior,block:'nearest'});}));
+}
 function updateQuoCount(source){
-  const st=quoState(source),rows=st.rows,total=rows.length,done=rows.filter(x=>['sent','responded','accepted','failed'].includes(x.status)).length,current=rows[st.index];
+  const st=quoState(source),rows=st.rows,total=rows.length,done=rows.filter(x=>['sent','responded','accepted','failed'].includes(x.status)).length,contacted=rows.filter(quoRowContacted).length,current=rows[st.index];
   const count=quoEl(source,'RecipientCount'),tech=quoEl(source,'CurrentTech'),miles=quoEl(source,'CurrentMiles'),msg=quoEl(source,'Message'),segmentsEl=quoEl(source,'Segments'),recipients=quoEl(source,'Recipients');
-  if(count)count.value=total?(done+' completed · '+(total-done)+' remaining · '+(st.index+1)+'/'+total):'Empty';
+  if(count)count.value=total?(contacted+' contacted · '+done+' completed · '+(st.index+1)+'/'+total):'Empty';
   if(tech)tech.value=current?(current.name+' · '+current.phone):'';
   if(miles)miles.value=current&&current.distance_miles!=null?Number(current.distance_miles).toFixed(1)+' mi':'—';
   const text=msg?.value||'',unicode=/[^\x00-\x7F]/.test(text),single=unicode?70:160,concat=unicode?67:153,segments=text.length<=single?1:Math.ceil(text.length/concat);
   if(segmentsEl)segmentsEl.textContent=text.length+' characters · estimated '+segments+' SMS segment'+(segments===1?'':'s')+' per technician';
-  if(recipients)recipients.innerHTML=rows.length?`<div class="tablewrap"><table style="min-width:700px"><thead><tr><th>#</th><th>Technician</th><th>Phone</th><th>Miles</th><th>Location</th><th>Status</th><th>Open</th></tr></thead><tbody>${rows.map((x,i)=>`<tr id="${source}QuoPhoneRow${i}" data-phone="${esc(phoneFindDigits(x.phone))}" style="${i===st.index?'background:rgba(15,159,143,.10)':''}"><td>${i+1}</td><td><b>${esc(x.name)}</b></td><td class="mono">${esc(x.phone)}</td><td><span class="quo-distance">${x.distance_miles!=null?Number(x.distance_miles).toFixed(1)+' mi':'—'}</span></td><td>${esc(x.location||'—')}</td><td>${quoStatusBadge(x.status)}</td><td><button class="btn ghost small" onclick="selectQuoQueue('${source}',${i})">Select</button></td></tr>`).join('')}</tbody></table></div>`:emptyState('Queue is empty','Run this source search first.');
+  if(recipients)recipients.innerHTML=rows.length?`<div class="tablewrap"><table style="min-width:700px"><thead><tr><th>#</th><th>Technician</th><th>Phone</th><th>Miles</th><th>Location</th><th>Status</th></tr></thead><tbody>${rows.map((x,i)=>{
+    x.contacted=quoRowContacted(x);const excluded=isSearchPhoneExcluded(x.phone),currentRow=i===st.index;const classes=['quo-row',currentRow?'quo-row-current':'',x.contacted?'quo-row-contacted':'',excluded?'quo-row-excluded':''].filter(Boolean).join(' ');
+    const chips=[currentRow?'<span class="quo-current-chip">CURRENT · YOU ARE HERE</span>':'',x.contacted?'<span class="quo-contacted-chip">CONTACTED</span>':'',excluded?'<span class="quo-excluded-chip">EXCLUDED</span>':''].filter(Boolean).join(' ');
+    return `<tr id="${source}QuoPhoneRow${i}" class="${classes}" tabindex="0" role="button" aria-current="${currentRow?'true':'false'}" data-phone="${esc(phoneFindDigits(x.phone))}" onclick="selectQuoQueue('${source}',${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectQuoQueue('${source}',${i})}"><td>${i+1}</td><td><b>${esc(x.name)}</b>${chips?`<div>${chips}</div>`:''}</td><td class="mono">${esc(x.phone)}</td><td><span class="quo-distance">${x.distance_miles!=null?Number(x.distance_miles).toFixed(1)+' mi':'—'}</span></td><td>${esc(x.location||'—')}</td><td>${quoStatusBadge(x.status)}</td></tr>`;
+  }).join('')}</tbody></table></div>`:emptyState('Queue is empty','Run this source search first.');
   const currentCand=currentQuoCandidate(source),fast=$(source==='yelp'?'yelpQuoFastHireBtn':'liveQuoFastHireBtn'),solo=$(source==='yelp'?'yelpQuoSoloBtn':'liveQuoSoloBtn'),vendorBtn=$(source==='yelp'?'yelpQuoVendorBtn':'liveQuoVendorBtn');
   if(fast)fast.disabled=!currentCand;if(solo){const inSolo=currentCand&&candidateInSolo(currentCand),inVendor=currentCand&&candidateInVendor(currentCand);solo.disabled=!currentCand||inSolo||inVendor||!candidatePhone10(currentCand);solo.textContent=inSolo?'✓ SOLO':inVendor?'VENDOR — NOT SOLO':'Add Solo';}if(vendorBtn){const inVendor=currentCand&&candidateInVendor(currentCand);vendorBtn.disabled=!currentCand||inVendor;vendorBtn.textContent=inVendor?'✓ VENDOR':'Add Vendor';}
 }
-function selectQuoQueue(source,index){const st=quoState(source);st.index=Math.min(Math.max(0,index),Math.max(0,st.rows.length-1));saveQuoQueueLocal(source);updateQuoCount(source);}
+function selectQuoQueue(source,index){const st=quoState(source);st.index=Math.min(Math.max(0,index),Math.max(0,st.rows.length-1));saveQuoQueueLocal(source);updateQuoCount(source);setSearchWorkspaceFocus(source);scrollCurrentQuoRow(source);}
 function currentQuoCandidate(source){const st=quoState(source),row=st.rows[st.index];if(!row)return null;const pool=source==='yelp'?yelpSearchCandidates:liveSearchCandidates;return pool.find(x=>String(f(x,'id'))===String(row.candidate_id))||pool.find(x=>quoPhone(x)===row.phone)||null;}
 function openCurrentQuoFastHire(source){const t=currentQuoCandidate(source);if(!t){note(quoPrefix(source)+'Notice','Current queue result is no longer available. Re-run this search.','error');return;}openFastHireModal(t);}
 async function addCurrentQuoToSolo(source){const t=currentQuoCandidate(source);if(!t)return;await addSearchCandidateToSolo(String(f(t,'id')));updateQuoCount(source);}
 async function addCurrentQuoToVendor(source){const t=currentQuoCandidate(source);if(!t)return;await addSearchCandidateToVendor(String(f(t,'id')));updateQuoCount(source);}
 async function openQuoRoute(source){
-  source=source==='yelp'?'yelp':'live';const st=quoState(source),rows=quoEligibleCandidates(source);
-  if(!rows.length){note(source==='live'?'liveSearchNotice':'yelpSearchNotice','No '+(source==='live'?'Live Search':'Yelp')+' result has a valid US phone number.','error');return;}
-  const local=loadQuoQueueLocal(source),localMap=new Map(local.rows.map(x=>[x.phone,x.status]));let saved=[];st.dbReady=true;
-  try{saved=await req('/quo_manual_routes?wo_number=eq.'+encodeURIComponent(v('won')||'draft')+'&source_kind=eq.'+source+'&select=technician_phone,route_status')||[];}catch{st.dbReady=false;}
-  const savedMap=new Map(saved.map(x=>[x.technician_phone,x.route_status]));
-  st.rows=rows.map(({t,phone})=>({candidate_id:String(f(t,'id')||''),name:tname(t),phone,distance_miles:candidateDistanceMiles(t),location:[f(t,'city'),f(t,'state')].filter(Boolean).join(', '),source_url:sourceLinkForCandidate(t),status:savedMap.get(phone)||localMap.get(phone)||'pending'}));
-  const pending=st.rows.findIndex(x=>!['sent','accepted','failed'].includes(x.status));
+  source=source==='yelp'?'yelp':'live';
+  await Promise.allSettled([refreshSearchPhoneExclusions(),refreshGlobalContactedPhones()]);
+  const st=quoState(source),rows=quoEligibleCandidates(source);
+  if(!rows.length){note(source==='live'?'liveSearchNotice':'yelpSearchNotice','No '+(source==='live'?'Live Search':'Yelp')+' result has a valid, non-excluded US phone number.','error');return;}
+  const local=loadQuoQueueLocal(source),localMap=new Map(local.rows.map(x=>[phoneFindDigits(x.phone),x]));let saved=[];st.dbReady=true;
+  try{saved=await req('/quo_manual_routes?wo_number=eq.'+encodeURIComponent(v('won')||'draft')+'&source_kind=eq.'+source+'&select=technician_phone,route_status,copied_at')||[];}catch{st.dbReady=false;}
+  const savedMap=new Map(saved.map(x=>[phoneFindDigits(x.technician_phone),x]));
+  st.rows=rows.map(({t,phone})=>{const key=phoneFindDigits(phone),db=savedMap.get(key)||{},loc=localMap.get(key)||{},status=db.route_status||loc.status||'pending',contacted=Boolean(db.copied_at||loc.contacted||globallyContactedPhones.has(key)||status==='copied');return {candidate_id:String(f(t,'id')||''),name:tname(t),phone,distance_miles:candidateDistanceMiles(t),location:[f(t,'city'),f(t,'state')].filter(Boolean).join(', '),source_url:sourceLinkForCandidate(t),status,contacted};});
+  let pending=st.rows.findIndex(x=>!quoRowContacted(x)&&!['sent','accepted','failed'].includes(x.status));
+  if(pending<0)pending=st.rows.findIndex(x=>!['sent','accepted','failed'].includes(x.status));
   st.index=pending>=0?pending:Math.min(local.index,Math.max(0,st.rows.length-1));
   const panel=quoEl(source,'RoutePanel'),msg=quoEl(source,'Message');if(panel)panel.classList.remove('hidden');panel?.closest('.search-source-panel')?.classList.add('queue-active');setSearchWorkspaceFocus(source);if(msg&&!msg.value)msg.value=buildQuoOutreachMessage();if(msg)msg.oninput=()=>updateQuoCount(source);clr(quoPrefix(source)+'Notice');updateQuoCount(source);saveQuoQueueLocal(source);
   const payload=st.rows.map(x=>({wo_number:v('won')||'draft',source_kind:source,technician_name:x.name,technician_phone:x.phone,message_text:msg?.value||buildQuoOutreachMessage(),route_status:x.status,source_url:x.source_url||null,updated_at:new Date().toISOString()}));
   try{await req('/quo_manual_routes?on_conflict=wo_number,source_kind,technician_phone',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(payload)});}catch{st.dbReady=false;note(quoPrefix(source)+'Notice','This '+(source==='live'?'Live':'Yelp')+' queue is fully independent in this browser. Run sql/29_quo_source_separation.sql once to persist both queues independently across devices.','info');}
-  panel?.scrollIntoView({behavior:'smooth',block:'nearest'});
+  scrollCurrentQuoRow(source,'auto');panel?.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 function closeQuoRoute(source){const panel=quoEl(source,'RoutePanel');panel?.classList.add('hidden');panel?.closest('.search-source-panel')?.classList.remove('queue-active');if(searchWorkspaceFocus===source)setSearchWorkspaceFocus('split');}
 async function copyTextForQuo(source,text,label){const notice=quoPrefix(source)+'Notice';try{await navigator.clipboard.writeText(text);note(notice,label,'success');return true;}catch{note(notice,'Clipboard permission was blocked. Copy manually: '+text,'error');return false;}}
-async function copyCurrentQuoPhone(source){const st=quoState(source),row=st.rows[st.index];if(!row)return;await copyTextForQuo(source,row.phone,'Phone copied. Quo opened — paste the phone to start the conversation.');window.open('https://my.quo.com/','_blank','noopener');await persistCurrentQuoStatus(source,'copied');}
+async function markCurrentQuoContacted(source){
+  const st=quoState(source),row=st.rows[st.index];if(!row)return;const phone=phoneFindDigits(row.phone),now=new Date().toISOString();row.contacted=true;if(phone.length===10){globallyContactedPhones.add(phone);saveContactedPhonesLocal();}
+  if(!row.status||row.status==='pending')row.status='copied';saveQuoQueueLocal(source);updateQuoCount(source);if(source==='live')updateQuoCount('yelp');else updateQuoCount('live');
+  const payload={wo_number:v('won')||'draft',source_kind:source,technician_name:row.name,technician_phone:row.phone,message_text:quoEl(source,'Message')?.value||'',route_status:row.status||'copied',source_url:row.source_url||null,copied_at:now,updated_at:now};
+  try{await req('/quo_manual_routes?on_conflict=wo_number,source_kind,technician_phone',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(payload)});st.dbReady=true;}catch{st.dbReady=false;}
+}
+async function copyCurrentQuoPhone(source){const st=quoState(source),row=st.rows[st.index];if(!row)return;const copied=await copyTextForQuo(source,row.phone,'Phone copied. Quo opened — this technician is now marked CONTACTED.');if(copied)await markCurrentQuoContacted(source);window.open('https://my.quo.com/','_blank','noopener');}
 async function copyCurrentQuoMessage(source){const st=quoState(source),row=st.rows[st.index],message=quoEl(source,'Message')?.value||'';if(!row)return;if(!message){note(quoPrefix(source)+'Notice','The message is empty.','error');return;}await copyTextForQuo(source,message,'Message copied. Paste it in the current Quo conversation and send.');}
 async function persistCurrentQuoStatus(source,status){
   const st=quoState(source),row=st.rows[st.index];if(!row)return;row.status=status;saveQuoQueueLocal(source);updateQuoCount(source);const now=new Date().toISOString(),timeField={copied:'copied_at',sent:'sent_at',responded:'responded_at',accepted:'accepted_at',failed:'failed_at'}[status];
   const payload={wo_number:v('won')||'draft',source_kind:source,technician_name:row.name,technician_phone:row.phone,message_text:quoEl(source,'Message')?.value||'',route_status:status,source_url:row.source_url||null,updated_at:now,...(timeField?{[timeField]:now}:{})};
   try{await req('/quo_manual_routes?on_conflict=wo_number,source_kind,technician_phone',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(payload)});st.dbReady=true;}catch{st.dbReady=false;}
 }
-async function setCurrentQuoStatus(source,status,next){const st=quoState(source),row=st.rows[st.index];if(!row)return;await persistCurrentQuoStatus(source,status);note(quoPrefix(source)+'Notice',row.name+' marked '+status+'.','success');if(next)moveQuoQueue(source,1,true);}
-function moveQuoQueue(source,delta,preferPending=false){const st=quoState(source),rows=st.rows;if(!rows.length)return;let next=st.index;if(preferPending){for(let i=1;i<=rows.length;i++){const n=(st.index+i)%rows.length;if(!['sent','accepted','failed'].includes(rows[n].status)){next=n;break;}}}else next=Math.min(rows.length-1,Math.max(0,st.index+delta));st.index=next;saveQuoQueueLocal(source);updateQuoCount(source);}
+async function setCurrentQuoStatus(source,status,next){
+  const st=quoState(source),row=st.rows[st.index];if(!row)return;
+  await persistCurrentQuoStatus(source,status);
+  if(status==='failed'){
+    await excludeSearchPhoneGlobally(row,source);
+    note(quoPrefix(source)+'Notice',row.name+' marked FAILED and this phone is now excluded from future Live + Yelp searches.'+(phoneExclusionDbReady?'':' Saved locally; run the Step 20 exclusion SQL for cross-device persistence.'),'success');
+  }else note(quoPrefix(source)+'Notice',row.name+' marked '+status+'.','success');
+  if(next)moveQuoQueue(source,1,true);
+}
+function moveQuoQueue(source,delta,preferPending=false){
+  const st=quoState(source),rows=st.rows;if(!rows.length)return;let next=st.index;
+  if(preferPending){
+    let fallback=-1;
+    for(let n=st.index+1;n<rows.length;n++){
+      if(['sent','accepted','failed'].includes(rows[n].status)||isSearchPhoneExcluded(rows[n].phone))continue;
+      if(fallback<0)fallback=n;
+      if(!quoRowContacted(rows[n])){next=n;fallback=-1;break;}
+    }
+    if(fallback>=0)next=fallback;
+    else if(next===st.index)next=Math.min(rows.length-1,st.index+1);
+  }else next=Math.min(rows.length-1,Math.max(0,st.index+delta));
+  st.index=next;saveQuoQueueLocal(source);updateQuoCount(source);scrollCurrentQuoRow(source);
+}
 async function nearestDbPoolFromZip(zip,trade){
   zip=cleanZip(zip);if(zip.length!==5)throw new Error('WO ZIP is required to rank the nearest technicians.');
   const pool=techs.filter(t=>!isLegacyCompanyMapTechnician(t)&&!b(f(t,'is_vendor'))&&!f(t,'vendor_id')&&b(f(t,'active')===''?true:f(t,'active'))&&tradeMatchesTech(t,trade));
@@ -3471,7 +3571,7 @@ function soloProbabilityChip(t){
   return `<span title="${esc(title)}" style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:999px;background:${bg};color:#fff;font-size:10px;font-weight:800;letter-spacing:.25px">SOLO ${d.score}% · ${d.label}</span>`;
 }
 function sortSearchCandidatesBySolo(rows){
-  return [...(rows||[])].sort((a,b)=>{
+  return [...filterExcludedSearchCandidates(rows||[])].sort((a,b)=>{
     const ds=soloProbability(b)-soloProbability(a);if(ds)return ds;
     const ad=Number(f(a,'_dist')),bd=Number(f(b,'_dist'));
     const af=Number.isFinite(ad)?ad:999999,bf=Number.isFinite(bd)?bd:999999;
@@ -4781,6 +4881,7 @@ function mergeYelpLiveAndMemory(liveRows,memoryRows){
 }
 async function searchYelpFromWO(){
   clr('yelpSearchNotice');
+  await refreshSearchPhoneExclusions();
   const trade=String(v('trade')||'').trim(),zip=cleanZip(v('zip')),city=String(v('city')||'').trim(),state=String(v('state')||'').trim().toUpperCase();
   const description=String(v('summary')||v('sow')||v('raw')||'').trim();
   if(!trade){note('yelpSearchNotice','Analyze the WO first — Trade is required.','error');return;}
@@ -4851,6 +4952,7 @@ function startYelpHiring(id){
 
 async function findClosestTech(){
   clr('liveSearchNotice');
+  await refreshSearchPhoneExclusions();
   const webhookUrl=(settings&&settings.n8n_find_tech_url)||v('s_n8n_url')||localStorage.getItem('n8n_find_tech_url');
   if(!webhookUrl){note('liveSearchNotice','Set the n8n webhook URL in Settings → n8n webhook — Find Closest Tech.','error');return;}
   liveSearchCandidates=[];renderSearchPanel('live');$('liveCinfo').textContent='Searching…';
