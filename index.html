@@ -1388,13 +1388,14 @@ input:focus,select:focus,textarea:focus{border-color:#31d6c4!important;box-shado
     <div class="nav-label">Technicians</div>
     <button data-v="technicians"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3.3 2.5-5.5 5.5-5.5s5.5 2.2 5.5 5.5"/><path d="M17 8h4M19 6v4"/></svg>Technicians</button>
     <button data-v="solotech"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>Solo Tech</button>
+    <button data-v="vendors"><svg viewBox="0 0 24 24"><path d="M3 7h18v12H3z"/><path d="M7 7V4h10v3M8 12h8M12 9v6"/></svg>Vendors</button>
     <button data-v="workedwith"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/><path d="M17 16l1.5 1.5L21 15"/></svg>Worked With</button>
     <button data-v="coverage"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/><path d="M3 19h18"/></svg>Coverage</button>
     <div class="nav-label">System</div>
     <button data-v="import"><svg viewBox="0 0 24 24"><path d="M12 4v10"/><path d="M8 10l4 4 4-4"/><path d="M4 18h16"/></svg>Import CSV</button>
     <button data-v="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 6.6 19l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3 13.4H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 6.6l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 10 3.6V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.1 2.5"/></svg>Settings</button>
   </nav>
-  <div class="sidefoot"><b>v11.78</b> · OPERATIONS OS<br>Supabase + OpenAI + Maps</div>
+  <div class="sidefoot"><b>v11.79</b> · OPERATIONS OS<br>Supabase + OpenAI + Maps</div>
 </aside>
 
 <main class="main">
@@ -1485,7 +1486,7 @@ input:focus,select:focus,textarea:focus{border-color:#31d6c4!important;box-shado
           <div class="section"><div><b>Live Search — Manual Quo Queue</b><div class="muted" style="font-size:11px;margin-top:4px">Independent Live Search queue · only technicians within 60 miles are routed here.</div></div><div style="display:flex;gap:7px;flex-wrap:wrap"><button class="btn primary small" onclick="setSearchWorkspaceFocus('live')">Focus Queue</button><button class="btn ghost small" onclick="closeQuoRoute('live')">Close</button></div></div>
           <div class="grid g3"><div class="field"><label>Queue progress</label><input id="liveQuoRecipientCount" class="readonly" readonly></div><div class="field"><label>Current technician</label><input id="liveQuoCurrentTech" class="readonly" readonly></div><div class="field"><label>Distance from WO</label><input id="liveQuoCurrentMiles" class="readonly" readonly></div></div>
           <div class="field"><label>Short outreach message</label><textarea id="liveQuoMessage" style="min-height:145px"></textarea><div id="liveQuoSegments" class="mono muted" style="font-size:10px;margin-top:5px"></div></div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 14px"><button class="btn primary small" onclick="copyCurrentQuoPhone('live')">1. Copy phone &amp; open Quo</button><button class="btn primary small" onclick="copyCurrentQuoMessage('live')">2. Copy message</button><button class="btn success small" onclick="setCurrentQuoStatus('live','sent',true)">Sent &amp; Next</button><button class="btn ghost small" onclick="setCurrentQuoStatus('live','responded',false)">Responded</button><button class="btn primary small" onclick="setCurrentQuoStatus('live','accepted',false)">Accepted</button><button class="btn danger small" onclick="setCurrentQuoStatus('live','failed',true)">Failed &amp; Next</button><button class="btn ghost small" onclick="moveQuoQueue('live',-1)">Previous</button><button class="btn ghost small" onclick="moveQuoQueue('live',1)">Next</button></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 14px"><button class="btn primary small" onclick="copyCurrentQuoPhone('live')">Copy phone &amp; open Quo</button><button class="btn primary small" onclick="copyCurrentQuoMessage('live')">Copy message</button><button class="btn success small" onclick="setCurrentQuoStatus('live','sent',true)">Sent &amp; Next</button><button id="liveQuoFastHireBtn" class="btn fast-hire-btn small" onclick="openCurrentQuoFastHire('live')">Fast Hire</button><button id="liveQuoSoloBtn" class="btn success small" onclick="addCurrentQuoToSolo('live')">Add Solo</button><button id="liveQuoVendorBtn" class="btn ghost small" onclick="addCurrentQuoToVendor('live')">Add Vendor</button><button class="btn danger small" onclick="setCurrentQuoStatus('live','failed',true)">Failed &amp; Next</button><button class="btn ghost small" onclick="moveQuoQueue('live',-1)">Previous</button><button class="btn ghost small" onclick="moveQuoQueue('live',1)">Next</button></div>
           <div id="liveQuoRecipients"></div><div id="liveQuoNotice" class="notice"></div>
         </div>
       </div>
@@ -1500,7 +1501,7 @@ input:focus,select:focus,textarea:focus{border-color:#31d6c4!important;box-shado
           <div class="section"><div><b>Yelp — Manual Quo Queue</b><div class="muted" style="font-size:11px;margin-top:4px">Independent Yelp queue · only technicians within 60 miles are routed here. Farther Yelp results remain saved in Search Memory.</div></div><div style="display:flex;gap:7px;flex-wrap:wrap"><button class="btn primary small" onclick="setSearchWorkspaceFocus('yelp')">Focus Queue</button><button class="btn ghost small" onclick="closeQuoRoute('yelp')">Close</button></div></div>
           <div class="grid g3"><div class="field"><label>Queue progress</label><input id="yelpQuoRecipientCount" class="readonly" readonly></div><div class="field"><label>Current technician</label><input id="yelpQuoCurrentTech" class="readonly" readonly></div><div class="field"><label>Distance from WO</label><input id="yelpQuoCurrentMiles" class="readonly" readonly></div></div>
           <div class="field"><label>Short outreach message</label><textarea id="yelpQuoMessage" style="min-height:145px"></textarea><div id="yelpQuoSegments" class="mono muted" style="font-size:10px;margin-top:5px"></div></div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 14px"><button class="btn primary small" onclick="copyCurrentQuoPhone('yelp')">1. Copy phone &amp; open Quo</button><button class="btn primary small" onclick="copyCurrentQuoMessage('yelp')">2. Copy message</button><button class="btn success small" onclick="setCurrentQuoStatus('yelp','sent',true)">Sent &amp; Next</button><button class="btn ghost small" onclick="setCurrentQuoStatus('yelp','responded',false)">Responded</button><button class="btn primary small" onclick="setCurrentQuoStatus('yelp','accepted',false)">Accepted</button><button class="btn danger small" onclick="setCurrentQuoStatus('yelp','failed',true)">Failed &amp; Next</button><button class="btn ghost small" onclick="moveQuoQueue('yelp',-1)">Previous</button><button class="btn ghost small" onclick="moveQuoQueue('yelp',1)">Next</button></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 14px"><button class="btn primary small" onclick="copyCurrentQuoPhone('yelp')">Copy phone &amp; open Quo</button><button class="btn primary small" onclick="copyCurrentQuoMessage('yelp')">Copy message</button><button class="btn success small" onclick="setCurrentQuoStatus('yelp','sent',true)">Sent &amp; Next</button><button id="yelpQuoFastHireBtn" class="btn fast-hire-btn small" onclick="openCurrentQuoFastHire('yelp')">Fast Hire</button><button id="yelpQuoSoloBtn" class="btn success small" onclick="addCurrentQuoToSolo('yelp')">Add Solo</button><button id="yelpQuoVendorBtn" class="btn ghost small" onclick="addCurrentQuoToVendor('yelp')">Add Vendor</button><button class="btn danger small" onclick="setCurrentQuoStatus('yelp','failed',true)">Failed &amp; Next</button><button class="btn ghost small" onclick="moveQuoQueue('yelp',-1)">Previous</button><button class="btn ghost small" onclick="moveQuoQueue('yelp',1)">Next</button></div>
           <div id="yelpQuoRecipients"></div><div id="yelpQuoNotice" class="notice"></div>
         </div>
       </div>
@@ -1632,6 +1633,25 @@ input:focus,select:focus,textarea:focus{border-color:#31d6c4!important;box-shado
   </section>
 
 
+  <!-- VENDORS — SAVED SERVICE COMPANIES / DISPATCH SOURCES -->
+  <section id="vendors" class="view">
+    <div class="card">
+      <div class="section">
+        <div><h2>Vendors</h2><span class="hint">Saved vendor companies · tied to trade + city/state · vendor-provided technicians stay linked to the vendor.</span></div>
+        <div class="actions"><button class="btn ghost small" type="button" onclick="loadVendors(true)">Refresh</button></div>
+      </div>
+      <div id="vendorNotice" class="notice"></div>
+      <div class="toolbar">
+        <div><label>Trade</label><select id="vendor_trade" onchange="renderVendors()"><option value="">All</option><option>Plumber</option><option>Electrical</option><option>HVAC</option><option>Handyman</option><option>Appliance Repair</option><option>Locksmith</option><option>Glass Repair</option><option>Power Washing</option><option>Landscaping</option><option>Snow Removal</option><option>Junk Removal</option></select></div>
+        <div><label>State</label><input id="vendor_state" maxlength="2" oninput="renderVendors()" placeholder="TX"></div>
+        <div><label>Search</label><input id="vendor_search" oninput="renderVendors()" placeholder="Name, phone, city, ZIP…"></div>
+      </div>
+      <div class="tech-controls"><span id="vendorMeta" class="table-meta">Vendor table not loaded yet.</span><button class="btn ghost small" onclick="resetVendorFilters()">Reset filters</button></div>
+      <div class="tablewrap"><table><thead><tr><th>Vendor</th><th>Phone</th><th>Trade</th><th>City</th><th>State</th><th>ZIP</th><th>Vendor Techs</th><th>Jobs</th><th>Source</th><th>Actions</th></tr></thead><tbody id="vendorBody"></tbody></table></div>
+    </div>
+  </section>
+
+
   <!-- WORKED WITH — PREVIOUSLY USED TECHNICIANS -->
   <section id="workedwith" class="view">
     <div class="card">
@@ -1737,12 +1757,16 @@ input:focus,select:focus,textarea:focus{border-color:#31d6c4!important;box-shado
       <div class="section"><div><h2>Fast Hire</h2><div class="hint">Minimal call details → immediate WO booking</div></div><button class="btn ghost small" onclick="closeFastHireModal()">✕</button></div>
       <div id="fastHireTechInfo" class="fast-hire-summary"></div>
       <div class="fast-hire-grid">
-        <div class="field"><label>Technician name *</label><input id="fh_name" autocomplete="off" oninput="renderFastHireMessage()"></div>
-        <div class="field"><label>Phone *</label><input id="fh_phone" autocomplete="off" inputmode="tel" oninput="renderFastHireMessage()"></div>
+        <div class="field"><label id="fh_name_label">Technician name *</label><input id="fh_name" autocomplete="off" oninput="renderFastHireMessage()"></div>
+        <div class="field"><label id="fh_phone_label">Phone *</label><input id="fh_phone" autocomplete="off" inputmode="tel" oninput="renderFastHireMessage()"></div>
         <div class="field"><label>Free estimate? *</label><select id="fh_free" onchange="toggleFastHireFee()"><option value="">Choose…</option><option value="yes">Yes — Free</option><option value="no">No — Paid estimate</option></select></div>
         <div id="fastHireFeeField" class="field fast-hire-estimate-fee hidden"><label>Estimate / assessment fee ($) *</label><input id="fh_fee" type="number" min="0" step="0.01" placeholder="0.00" oninput="renderFastHireMessage()"></div>
         <div class="field"><label>Arrival time / ETA *</label><input id="fh_eta" type="datetime-local" onchange="renderFastHireMessage()"></div>
         <div class="field"><label>Payment method *</label><input id="fh_payment" list="paymentMethodOptions" autocomplete="off" placeholder="Zelle, Cash App, Venmo…" oninput="renderFastHireMessage()"></div>
+      </div>
+      <div class="fast-hire-message-box">
+        <div class="fast-hire-message-head"><div><div class="wo-sticky-label">TL fast-hire summary</div><div class="hint">ETA + estimate terms + payment are kept short for the Team Leader.</div></div><button type="button" class="btn success small" onclick="copyFastHireTLSummary()">COPY TL SUMMARY</button></div>
+        <textarea id="fastHireTLSummary" readonly style="min-height:125px"></textarea>
       </div>
       <div class="fast-hire-message-box">
         <div class="fast-hire-message-head"><div><div class="wo-sticky-label">Technician confirmation message</div><div class="hint">Paste this message to the technician for a Fast Hire.</div></div><button type="button" class="btn primary small" onclick="copyFastHireMessage()">COPY TECH MESSAGE</button></div>
@@ -1753,6 +1777,25 @@ input:focus,select:focus,textarea:focus{border-color:#31d6c4!important;box-shado
         <button class="btn ghost" onclick="closeFastHireModal()">Cancel</button>
         <button id="confirmFastHireBtn" class="btn fast-hire-btn" onclick="confirmFastHire()">FAST HIRE &amp; BOOK NOW</button>
       </div>
+    </div>
+  </div>
+
+  <div id="vendorTechModal" class="modal">
+    <div class="modal-content" style="max-width:700px">
+      <div class="section"><div><h2>Quick Save Vendor Technician</h2><div class="hint">Use this when the vendor gives you a technician number or the technician calls you directly.</div></div><button class="btn ghost small" onclick="closeVendorTechModal()">✕</button></div>
+      <div id="vendorTechVendorInfo" class="fast-hire-summary"></div>
+      <div class="grid g2">
+        <div class="field"><label>Technician name *</label><input id="vqt_name" autocomplete="off"></div>
+        <div class="field"><label>Technician phone *</label><input id="vqt_phone" inputmode="tel" autocomplete="off"></div>
+        <div class="field"><label>Trade *</label><select id="vqt_trade"><option value="">Choose…</option><option>Plumber</option><option>Electrical</option><option>HVAC</option><option>Handyman</option><option>Appliance Repair</option><option>Locksmith</option><option>Glass Repair</option><option>Power Washing</option><option>Landscaping</option><option>Snow Removal</option><option>Junk Removal</option></select></div>
+        <div class="field"><label>Payment method</label><input id="vqt_payment" list="paymentMethodOptions" placeholder="Optional"></div>
+        <div class="field"><label>City</label><input id="vqt_city"></div>
+        <div class="field"><label>State</label><input id="vqt_state" maxlength="2"></div>
+        <div class="field"><label>ZIP</label><input id="vqt_zip" maxlength="10"></div>
+        <div class="field"><label>Attach to vendor-booked WO</label><select id="vqt_wo"><option value="">Save only — do not change a WO</option></select></div>
+      </div>
+      <div id="vendorTechNotice" class="notice"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px"><button class="btn ghost" onclick="closeVendorTechModal()">Cancel</button><button class="btn primary" onclick="saveVendorTechnicianQuick()">SAVE TECHNICIAN</button></div>
     </div>
   </div>
   <section id="import" class="view">
@@ -1903,6 +1946,7 @@ const API = SB_URL + '/rest/v1';
 const FN  = SB_URL + '/functions/v1';
 
 let techs = [], wos = [], paymentRequests = [], stageRows = [], woFiles = [], currentWO = null, candidates = [], page = 0, settings = {};
+let vendors=[], vendorTechLinks=[], vendorSchemaReady=false, pendingVendorTechVendor=null;
 let liveSearchCandidates = [], yelpSearchCandidates = []; // independent parallel search state
 let editingWoId = null, paymentWOId = null, editingPaymentId = null, pendingPaymentAnalysis = null, paymentOpenMode = 'all';
 let paymentSchemaReady = true, lastAnalyzedRaw = '', analysisPromise = null;
@@ -2124,8 +2168,8 @@ function note(id, msg, type='info'){ const e=$(id); if(!e)return; e.innerHTML='<
 function clr(id){ const e=$(id); if(e) e.className='notice'; }
 
 /* ---- navigation ---- */
-const TITLES = { dashboard:'Dashboard', newwo:'New Work Order', workorders:'My Orders', workflow:'WO Workflow', technicians:'Technicians', solotech:'Solo Tech', workedwith:'Worked With', coverage:'Coverage', import:'Import CSV', settings:'Settings' };
-const SUBS   = { dashboard:'Operations command center · active work, technicians and payments', newwo:'Paste once · review AI analysis · dispatch the right technician', workorders:'Booked work orders · current status · next action', workflow:'One stage at a time · arrival → diagnosis → quote → payment → completion', technicians:'Search, filter and reuse the technician network', solotech:'Fast dispatch directory · job details → call agreement → immediate assignment', workedwith:'Previously used technicians · city matching · instant assignment', coverage:'Coverage strength by area and trade · Yelp discovery → verified network', import:'Bulk-load and maintain technician coverage', settings:'Integrations and dispatch system configuration' };
+const TITLES = { dashboard:'Dashboard', newwo:'New Work Order', workorders:'My Orders', workflow:'WO Workflow', technicians:'Technicians', solotech:'Solo Tech', vendors:'Vendors', workedwith:'Worked With', coverage:'Coverage', import:'Import CSV', settings:'Settings' };
+const SUBS   = { dashboard:'Operations command center · active work, technicians and payments', newwo:'Paste once · review AI analysis · dispatch the right technician', workorders:'Booked work orders · current status · next action', workflow:'One stage at a time · arrival → diagnosis → quote → payment → completion', technicians:'Search, filter and reuse the technician network', solotech:'Fast dispatch directory · job details → call agreement → immediate assignment', vendors:'Saved vendor companies · vendor technicians · fast vendor booking', workedwith:'Previously hired resources · city matching · instant assignment', coverage:'Coverage strength by area and trade · Yelp discovery → verified network', import:'Bulk-load and maintain technician coverage', settings:'Integrations and dispatch system configuration' };
 let activeViewId='dashboard';
 function stickyWOContext(){
   // Keep the floating WO brief only on New Work Order / search.
@@ -2149,6 +2193,7 @@ function go(id){
   document.querySelector('.top .sub').textContent = SUBS[id] || '';
   updateWOStickyBrief();
   if(id==='coverage') loadCoverage(false);
+  if(id==='vendors') loadVendors(false);
 }
 document.querySelectorAll('.nav button').forEach(x=>x.onclick=()=>go(x.dataset.v));
 
@@ -2348,13 +2393,15 @@ async function test(){
 }
 async function loadAll(){
   clr('global');
-  const [techResult, woResult, paymentResult, stageResult, fileResult, liveDbResult] = await Promise.allSettled([
+  const [techResult, woResult, paymentResult, stageResult, fileResult, liveDbResult, vendorResult, vendorTechResult] = await Promise.allSettled([
     loadAllTechnicians(),
     req('/work_orders?select=*&order=created_at.desc.nullslast&limit=1000'),
     req('/payment_requests?select=*&order=created_at.asc.nullslast&limit=5000'),
     req('/work_order_stage_data?select=*&order=updated_at.asc.nullslast&limit=10000'),
     req('/work_order_files?select=*&order=created_at.asc.nullslast&limit=10000'),
-    req('/live_search_technicians?select=*&order=created_at.desc&limit=5000')
+    req('/live_search_technicians?select=*&order=created_at.desc&limit=5000'),
+    req('/vendors?select=*&order=updated_at.desc.nullslast&limit=5000'),
+    req('/vendor_technicians?select=*&order=updated_at.desc.nullslast&limit=10000')
   ]);
   if(techResult.status==='fulfilled') techs=techResult.value;
   if(woResult.status==='fulfilled') wos=woResult.value;
@@ -2369,6 +2416,7 @@ async function loadAll(){
     stageRows=[];woFiles=[];workflowSchemaReady=false;
   }
   if(liveDbResult.status==='fulfilled'){liveSearchDbTechs=liveDbResult.value||[];liveSearchDbReady=true;}else{liveSearchDbTechs=[];liveSearchDbReady=false;}
+  if(vendorResult.status==='fulfilled'&&vendorTechResult.status==='fulfilled'){vendors=vendorResult.value||[];vendorTechLinks=vendorTechResult.value||[];vendorSchemaReady=true;}else{vendors=[];vendorTechLinks=[];vendorSchemaReady=false;}
   if(techResult.status==='fulfilled'&&woResult.status==='fulfilled'){
     $('dot').className='dot ok'; $('dbs').textContent='Connected';
     if(technicianLoadInfo.generalError||technicianLoadInfo.facebookError){
@@ -2388,9 +2436,9 @@ function renderAll(){
   $('mwoActive').textContent = active.length + ' active';
   $('mtech').textContent = techs.length;
   $('mtechExt').textContent = techs.filter(x=>b(f(x,'is_external'))).length + ' external';
-  $('mven').textContent = techs.filter(x=>b(f(x,'is_vendor'))).length;
+  $('mven').textContent = vendorSchemaReady?vendors.length:techs.filter(x=>b(f(x,'is_vendor'))).length;
   $('mcom').textContent = techs.filter(x=>b(f(x,'has_completed_job'))).length;
-  renderDash(); renderWO(); renderTechs(); renderLiveSearchDb();
+  renderDash(); renderWO(); renderTechs(); renderLiveSearchDb(); renderVendors();
 }
 function renderDash(){
   const a = wos.filter(x=>!ACTIVE_HIDDEN.includes(String(f(x,'status')).toLowerCase())).slice(0,8);
@@ -2410,7 +2458,7 @@ function renderWO(){
   const bookedOrders=wos.filter(w=>Boolean(f(w,'assigned_technician_id')));
   $('wotbody').innerHTML = bookedOrders.length ? bookedOrders.map(w=>{
     const e=etaForWO(w), pr=String(f(w,'priority')||'normal').toLowerCase();
-    const at=f(w,'assigned_technician_id'), tech=techs.find(x=>String(f(x,'id'))===String(at));
+    const at=f(w,'assigned_technician_id'), tech=techs.find(x=>String(f(x,'id'))===String(at)),vendorRow=vendors.find(x=>String(f(x,'id'))===String(f(w,'assigned_vendor_id')));
     const pays=paymentRequests.filter(p=>String(f(p,'work_order_id'))===String(f(w,'id')));
     const final=pays.some(p=>String(f(p,'status')).toLowerCase()==='work_done');
     const etaValue=f(w,'eta_code')||(f(w,'scheduled_for','requested_arrival_at')?'scheduled':'');
@@ -2421,7 +2469,7 @@ function renderWO(){
       <td>${esc(f(w,'full_address')||[f(w,'street'),f(w,'city'),f(w,'state'),f(w,'zip_code')].filter(Boolean).join(', ')||'—')}</td>
       <td><span class="badge b-status">${esc(STATUS_LABELS[currentWorkflowStatus(w)]||currentWorkflowStatus(w))}</span></td>
       <td><select class="tagsel" onchange="setEtaCode('${esc(f(w,'id'))}',this.value)">${ETA_OPTIONS.map(code=>`<option value="${code}" ${etaValue===code?'selected':''}>${code===''?'Not set':code==='scheduled'?'Scheduled':code}</option>`).join('')}</select><div style="margin-top:5px"><span class="eta ${e.c}">${e.l}</span></div></td>
-      <td>${tech?esc(tname(tech)):'<span class="muted">—</span>'}</td>
+      <td>${vendorRow?`<b>${esc(f(vendorRow,'name','business_name')||'Vendor')}</b><div class="muted" style="font-size:10px">Vendor booking${tech&&tname(tech)!==f(vendorRow,'name','business_name')?' · Tech: '+esc(tname(tech)):''}</div>`:(tech?esc(tname(tech)):'<span class="muted">—</span>')}</td>
       <td style="white-space:nowrap">
         <button class="btn ghost small ${f(w,'quote_text')?'success':''}" onclick="genFor('${esc(f(w,'id'))}','quote')">Quote${f(w,'quote_text')?' ✓':''}</button>
         <button class="btn ghost small ${pays.length?'success':''}" onclick="openPayment('${esc(f(w,'id'))}')">Payments ${pays.length}${final?' ✓':''}</button>
@@ -2451,7 +2499,7 @@ function techRowsForDistanceSearch(){
   // technician just across a state line can still rank in the nearest 7.
   return techs.filter(t=>
     !isLegacyCompanyMapTechnician(t) &&
-    !b(f(t,'is_vendor')) &&
+    !b(f(t,'is_vendor')) && !f(t,'vendor_id') &&
     (!tr||soloTradeKey(f(t,'primary_trade','trade'))==='all trades'||soloTradeKey(f(t,'primary_trade','trade'))===soloTradeKey(tr)) &&
     (!src||techMatchesSource(t,src)) &&
     (!q||JSON.stringify(t).toLowerCase().includes(q)) &&
@@ -2535,7 +2583,7 @@ function renderTechs(){
       <td class="mono">R${esc(f(t,'responses_count')||0)} · A${esc(f(t,'accepted_jobs_count')||0)} · C${esc(f(t,'completed_jobs_count')||0)}</td>
       <td><b>${esc(f(t,'source_platform','source_type')||'—')}</b>${fb?`<div style="margin-top:4px"><a target="_blank" rel="noopener noreferrer" href="${esc(fb)}">Open Facebook</a></div>`:''}${srcLink&&srcLink!==fb?`<div style="margin-top:4px"><a target="_blank" rel="noopener noreferrer" href="${esc(srcLink)}">Open other source</a></div>`:''}</td>
       <td style="white-space:nowrap">
-        <button class="btn small ${iv?'success':'danger'}" onclick="vendor('${esc(f(t,'id'))}',${iv})">${iv?'Unmark':'Vendor'}</button>
+        <button class="btn small ${candidateInVendor(t)?'success':'ghost'}" onclick="${candidateInVendor(t)?"go('vendors')":"addDirectoryTechToVendor('"+esc(f(t,'id'))+"')"}">${candidateInVendor(t)?'✓ IN VENDORS':'ADD TO VENDOR'}</button>
         <button class="btn small ghost" onclick="hist('${esc(f(t,'id'))}','responded')">R</button>
         <button class="btn small ghost" onclick="hist('${esc(f(t,'id'))}','accepted')">A</button>
         <button class="btn small ghost" onclick="hist('${esc(f(t,'id'))}','completed')">C</button>
@@ -3023,15 +3071,21 @@ function updateQuoCount(source){
   const text=msg?.value||'',unicode=/[^\x00-\x7F]/.test(text),single=unicode?70:160,concat=unicode?67:153,segments=text.length<=single?1:Math.ceil(text.length/concat);
   if(segmentsEl)segmentsEl.textContent=text.length+' characters · estimated '+segments+' SMS segment'+(segments===1?'':'s')+' per technician';
   if(recipients)recipients.innerHTML=rows.length?`<div class="tablewrap"><table style="min-width:700px"><thead><tr><th>#</th><th>Technician</th><th>Phone</th><th>Miles</th><th>Location</th><th>Status</th><th>Open</th></tr></thead><tbody>${rows.map((x,i)=>`<tr style="${i===st.index?'background:rgba(15,159,143,.10)':''}"><td>${i+1}</td><td><b>${esc(x.name)}</b></td><td class="mono">${esc(x.phone)}</td><td><span class="quo-distance">${x.distance_miles!=null?Number(x.distance_miles).toFixed(1)+' mi':'—'}</span></td><td>${esc(x.location||'—')}</td><td>${quoStatusBadge(x.status)}</td><td><button class="btn ghost small" onclick="selectQuoQueue('${source}',${i})">Select</button></td></tr>`).join('')}</tbody></table></div>`:emptyState('Queue is empty','Run this source search first.');
+  const currentCand=currentQuoCandidate(source),fast=$(source==='yelp'?'yelpQuoFastHireBtn':'liveQuoFastHireBtn'),solo=$(source==='yelp'?'yelpQuoSoloBtn':'liveQuoSoloBtn'),vendorBtn=$(source==='yelp'?'yelpQuoVendorBtn':'liveQuoVendorBtn');
+  if(fast)fast.disabled=!currentCand;if(solo){const inSolo=currentCand&&candidateInSolo(currentCand),inVendor=currentCand&&candidateInVendor(currentCand);solo.disabled=!currentCand||inSolo||inVendor||!candidatePhone10(currentCand);solo.textContent=inSolo?'✓ SOLO':inVendor?'VENDOR — NOT SOLO':'Add Solo';}if(vendorBtn){const inVendor=currentCand&&candidateInVendor(currentCand);vendorBtn.disabled=!currentCand||inVendor;vendorBtn.textContent=inVendor?'✓ VENDOR':'Add Vendor';}
 }
 function selectQuoQueue(source,index){const st=quoState(source);st.index=Math.min(Math.max(0,index),Math.max(0,st.rows.length-1));saveQuoQueueLocal(source);updateQuoCount(source);}
+function currentQuoCandidate(source){const st=quoState(source),row=st.rows[st.index];if(!row)return null;const pool=source==='yelp'?yelpSearchCandidates:liveSearchCandidates;return pool.find(x=>String(f(x,'id'))===String(row.candidate_id))||pool.find(x=>quoPhone(x)===row.phone)||null;}
+function openCurrentQuoFastHire(source){const t=currentQuoCandidate(source);if(!t){note(quoPrefix(source)+'Notice','Current queue result is no longer available. Re-run this search.','error');return;}openFastHireModal(t);}
+async function addCurrentQuoToSolo(source){const t=currentQuoCandidate(source);if(!t)return;await addSearchCandidateToSolo(String(f(t,'id')));updateQuoCount(source);}
+async function addCurrentQuoToVendor(source){const t=currentQuoCandidate(source);if(!t)return;await addSearchCandidateToVendor(String(f(t,'id')));updateQuoCount(source);}
 async function openQuoRoute(source){
   source=source==='yelp'?'yelp':'live';const st=quoState(source),rows=quoEligibleCandidates(source);
   if(!rows.length){note(source==='live'?'liveSearchNotice':'yelpSearchNotice','No '+(source==='live'?'Live Search':'Yelp')+' result has a valid US phone number.','error');return;}
   const local=loadQuoQueueLocal(source),localMap=new Map(local.rows.map(x=>[x.phone,x.status]));let saved=[];st.dbReady=true;
   try{saved=await req('/quo_manual_routes?wo_number=eq.'+encodeURIComponent(v('won')||'draft')+'&source_kind=eq.'+source+'&select=technician_phone,route_status')||[];}catch{st.dbReady=false;}
   const savedMap=new Map(saved.map(x=>[x.technician_phone,x.route_status]));
-  st.rows=rows.map(({t,phone})=>({name:tname(t),phone,distance_miles:candidateDistanceMiles(t),location:[f(t,'city'),f(t,'state')].filter(Boolean).join(', '),source_url:sourceLinkForCandidate(t),status:savedMap.get(phone)||localMap.get(phone)||'pending'}));
+  st.rows=rows.map(({t,phone})=>({candidate_id:String(f(t,'id')||''),name:tname(t),phone,distance_miles:candidateDistanceMiles(t),location:[f(t,'city'),f(t,'state')].filter(Boolean).join(', '),source_url:sourceLinkForCandidate(t),status:savedMap.get(phone)||localMap.get(phone)||'pending'}));
   const pending=st.rows.findIndex(x=>!['sent','accepted','failed'].includes(x.status));
   st.index=pending>=0?pending:Math.min(local.index,Math.max(0,st.rows.length-1));
   const panel=quoEl(source,'RoutePanel'),msg=quoEl(source,'Message');if(panel)panel.classList.remove('hidden');panel?.closest('.search-source-panel')?.classList.add('queue-active');setSearchWorkspaceFocus(source);if(msg&&!msg.value)msg.value=buildQuoOutreachMessage();if(msg)msg.oninput=()=>updateQuoCount(source);clr(quoPrefix(source)+'Notice');updateQuoCount(source);saveQuoQueueLocal(source);
@@ -3052,7 +3106,7 @@ async function setCurrentQuoStatus(source,status,next){const st=quoState(source)
 function moveQuoQueue(source,delta,preferPending=false){const st=quoState(source),rows=st.rows;if(!rows.length)return;let next=st.index;if(preferPending){for(let i=1;i<=rows.length;i++){const n=(st.index+i)%rows.length;if(!['sent','accepted','failed'].includes(rows[n].status)){next=n;break;}}}else next=Math.min(rows.length-1,Math.max(0,st.index+delta));st.index=next;saveQuoQueueLocal(source);updateQuoCount(source);}
 async function nearestDbPoolFromZip(zip,trade){
   zip=cleanZip(zip);if(zip.length!==5)throw new Error('WO ZIP is required to rank the nearest technicians.');
-  const pool=techs.filter(t=>!isLegacyCompanyMapTechnician(t)&&!b(f(t,'is_vendor'))&&b(f(t,'active')===''?true:f(t,'active'))&&tradeMatchesTech(t,trade));
+  const pool=techs.filter(t=>!isLegacyCompanyMapTechnician(t)&&!b(f(t,'is_vendor'))&&!f(t,'vendor_id')&&b(f(t,'active')===''?true:f(t,'active'))&&tradeMatchesTech(t,trade));
   const ranked=await rankRowsByZipDistance(pool,zip,NEAREST_TECH_LIMIT);
   return ranked.rows.map(t=>({...t,_source_kind:candidateSourceKind(t)}));
 }
@@ -3133,7 +3187,7 @@ function sortSearchCandidatesBySolo(rows){
 }
 function candidateInSolo(t){
   const phone=candidatePhone10(t);if(!phone)return false;
-  return [...(soloHiredTechs||[]),...(techs||[])].some(x=>candidatePhone10(x)===phone&&b(f(x,'solo_list_member')));
+  return [...(soloHiredTechs||[]),...(techs||[])].some(x=>candidatePhone10(x)===phone&&b(f(x,'solo_list_member'))&&!b(f(x,'is_vendor'))&&!f(x,'vendor_id'));
 }
 function candidateInWorkedWith(t){
   const phone=candidatePhone10(t);if(!phone)return false;
@@ -3208,6 +3262,59 @@ async function addSearchCandidateToWorkedWith(id){
   }catch(e){note('wonotice','Could not add to Worked With: '+String(e?.message||e),'error');}
 }
 
+
+function vendorIdentityPhone(t){return candidatePhone10(t);}
+function vendorForCandidate(t){
+  if(!t)return null;const explicit=String(f(t,'_vendor_id','vendor_id')||'').trim();if(explicit){const hit=vendors.find(v=>String(f(v,'id'))===explicit);if(hit)return hit;}
+  const phone=vendorIdentityPhone(t);if(phone){const hit=vendors.find(v=>vendorIdentityPhone(v)===phone);if(hit)return hit;}
+  const url=String(f(t,'source_url')||'').trim().toLowerCase();if(url){const hit=vendors.find(v=>String(f(v,'source_url')||'').trim().toLowerCase()===url);if(hit)return hit;}
+  return null;
+}
+function candidateInVendor(t){return Boolean(vendorForCandidate(t));}
+function vendorTechCount(vendorId){return (vendorTechLinks||[]).filter(x=>String(f(x,'vendor_id'))===String(vendorId)).length;}
+function vendorCandidate(vd){return {id:'vendor-'+String(f(vd,'id')),name:f(vd,'name','business_name')||'Vendor',business_name:f(vd,'business_name','name'),phone:f(vd,'phone'),normalized_phone:f(vd,'normalized_phone'),email:f(vd,'email'),primary_trade:f(vd,'primary_trade'),city:f(vd,'city'),state:f(vd,'state'),zip_code:f(vd,'zip_code'),latitude:f(vd,'latitude'),longitude:f(vd,'longitude'),source_platform:f(vd,'source_platform')||'Vendor DB',source_url:f(vd,'source_url'),payment_method:f(vd,'payment_method'),_source_kind:'vendor_db',_vendor_id:f(vd,'id'),_is_vendor_candidate:true};}
+async function loadVendors(showNotice=false){
+  try{
+    const [vr,tr]=await Promise.all([req('/vendors?select=*&order=updated_at.desc.nullslast&limit=5000'),req('/vendor_technicians?select=*&order=updated_at.desc.nullslast&limit=10000')]);
+    vendors=Array.isArray(vr)?vr:[];vendorTechLinks=Array.isArray(tr)?tr:[];vendorSchemaReady=true;renderVendors();renderParallelSearchPanels();renderSoloTechs();if(showNotice)note('vendorNotice','Vendor DB refreshed: '+vendors.length+' vendor(s).','success');return vendors;
+  }catch(e){vendorSchemaReady=false;vendors=[];vendorTechLinks=[];renderVendors();if(showNotice||$('vendors')?.classList.contains('active'))note('vendorNotice','Vendor DB is not installed yet. Run sql/30_vendor_network_fast_hire.sql once. '+String(e?.message||e),'error');return [];}
+}
+function resetVendorFilters(){['vendor_trade','vendor_state','vendor_search'].forEach(id=>{if($(id))$(id).value='';});renderVendors();}
+function renderVendors(){
+  const body=$('vendorBody');if(!body)return;const trade=soloTradeKey(v('vendor_trade')),state=soloStateCode(v('vendor_state')),q=String(v('vendor_search')||'').trim().toLowerCase();
+  let rows=(vendors||[]).filter(x=>(!trade||soloTradeKey(f(x,'primary_trade'))===trade)&&(!state||soloStateCode(f(x,'state'))===state)&&(!q||JSON.stringify(x).toLowerCase().includes(q)));
+  rows.sort((a,b)=>Number(f(b,'jobs_count')||0)-Number(f(a,'jobs_count')||0)||String(f(a,'state')||'').localeCompare(String(f(b,'state')||''))||String(f(a,'city')||'').localeCompare(String(f(b,'city')||''))||tname(a).localeCompare(tname(b)));
+  if($('vendorMeta'))$('vendorMeta').textContent=vendorSchemaReady?(rows.length+' shown · '+vendors.length+' saved vendors'):'Vendor DB not installed — run SQL/30.';
+  body.innerHTML=rows.length?rows.map(x=>`<tr><td><b>${esc(f(x,'name','business_name')||'Unnamed vendor')}</b>${f(x,'contact_name')?`<div class="muted">Contact: ${esc(f(x,'contact_name'))}</div>`:''}</td><td class="mono">${esc(f(x,'phone','normalized_phone')||'—')}</td><td>${esc(f(x,'primary_trade')||'—')}</td><td>${esc(f(x,'city')||'—')}</td><td class="mono">${esc(f(x,'state')||'—')}</td><td class="mono">${esc(f(x,'zip_code')||'—')}</td><td><span class="badge b-status">${vendorTechCount(f(x,'id'))}</span></td><td><span class="job-count-badge">${esc(f(x,'jobs_count')||0)}</span></td><td>${esc(f(x,'source_platform','source_kind')||'—')}</td><td style="white-space:nowrap"><button class="btn fast-hire-btn small" onclick="openFastHireVendor('${esc(f(x,'id'))}')">Fast Hire</button> <button class="btn primary small" onclick="openVendorTechModal('${esc(f(x,'id'))}')">Save Tech</button>${f(x,'phone','normalized_phone')?` <button class="btn ghost small" onclick="copyVendorPhone('${esc(f(x,'id'))}')">Copy phone</button>`:''}</td></tr>`).join(''):`<tr><td colspan="10">${emptyState(vendorSchemaReady?'No vendors match':'Vendor DB not installed',vendorSchemaReady?'Add a vendor from Yelp / Live Search or move one from Solo.':'Run sql/30_vendor_network_fast_hire.sql once.')}</td></tr>`;
+}
+async function copyVendorPhone(id){const vd=vendors.find(x=>String(f(x,'id'))===String(id)),phone=String(f(vd,'phone','normalized_phone')||'');if(!phone)return;try{await navigator.clipboard.writeText(phone);note('vendorNotice','Vendor phone copied.','success');}catch{note('vendorNotice','Vendor phone: '+phone,'info');}}
+async function ensureVendorFromCandidate(t,sourceOverride=''){
+  if(!vendorSchemaReady){try{await loadVendors(false);}catch{}if(!vendorSchemaReady)throw new Error('Vendor DB is not installed. Run sql/30_vendor_network_fast_hire.sql once.');}
+  const phone=vendorIdentityPhone(t),url=String(f(t,'source_url')||'').trim(),now=new Date().toISOString();let existing=vendorForCandidate(t);
+  if(!existing&&phone){try{const rows=await req('/vendors?normalized_phone=eq.'+encodeURIComponent(phone)+'&limit=1');existing=Array.isArray(rows)?rows[0]:null;}catch{}}
+  if(!existing&&url){try{const rows=await req('/vendors?source_url=eq.'+encodeURIComponent(url)+'&limit=1');existing=Array.isArray(rows)?rows[0]:null;}catch{}}
+  const payload={name:tname(t)||null,business_name:f(t,'business_name')||tname(t)||null,phone:String(f(t,'phone')||'')||null,normalized_phone:phone||null,email:String(f(t,'email')||'')||null,primary_trade:String(f(t,'primary_trade','trade')||'')||null,city:String(f(t,'city')||'')||null,state:soloStateCode(f(t,'state'))||null,zip_code:cleanZip(f(t,'zip_code','zip'))||null,latitude:Number.isFinite(Number(f(t,'latitude')))?Number(f(t,'latitude')):null,longitude:Number.isFinite(Number(f(t,'longitude')))?Number(f(t,'longitude')):null,source_kind:sourceOverride||candidateSourceCode(t)||f(t,'source_type')||'manual',source_platform:String(f(t,'source_platform')||'')||null,source_url:url||null,payment_method:String(f(t,'payment_method')||'')||null,notes:String(f(t,'notes')||'')||null,active:true,updated_at:now};
+  Object.keys(payload).forEach(k=>{if(payload[k]===null||payload[k]==='')delete payload[k];});
+  let saved=existing?await req('/vendors?id=eq.'+encodeURIComponent(f(existing,'id')),{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)}):await req('/vendors',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});saved=Array.isArray(saved)?saved[0]:saved;if(!saved)throw new Error('Vendor could not be saved.');
+  const vi=vendors.findIndex(x=>String(f(x,'id'))===String(f(saved,'id')));if(vi>=0)vendors[vi]=saved;else vendors.unshift(saved);
+  // If the same phone already exists in technicians/Solo, convert it to vendor classification and remove Solo membership.
+  const main=phone?techs.find(x=>candidatePhone10(x)===phone):null;if(main&&f(main,'id')){const mark={is_vendor:true,vendor_id:f(saved,'id'),vendor_marked_at:now,solo_list_member:false,updated_at:now};try{await req('/technicians?id=eq.'+encodeURIComponent(f(main,'id')),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(mark)});Object.assign(main,mark);}catch(e){console.warn('Vendor saved; technician classification compatibility update skipped',e);}soloHiredTechs=soloHiredTechs.filter(x=>String(f(x,'id'))!==String(f(main,'id'))&&candidatePhone10(x)!==phone);}
+  return saved;
+}
+async function addSearchCandidateToVendor(id){const t=searchCandidateById(id);if(!t)return;const notice=f(t,'_source_kind')==='yelp'?'yelpSearchNotice':'liveSearchNotice';try{const vd=await ensureVendorFromCandidate(t);if(vd?.id){t._vendor_id=vd.id;t.vendor_id=vd.id;t._is_vendor_candidate=true;}renderParallelSearchPanels();renderVendors();renderSoloTechs();note(notice,tname(t)+' added to Vendors and removed from Solo classification if it existed there.','success');return vd;}catch(e){note(notice,'Could not add Vendor: '+String(e?.message||e),'error');}}
+async function addAnyCandidateToVendor(id){const t=searchCandidateById(id);if(!t){note('global','Candidate not found.','error');return;}try{const vd=await ensureVendorFromCandidate(t,'candidate_moved_to_vendor');if(vd?.id){t._vendor_id=vd.id;t.vendor_id=vd.id;t._is_vendor_candidate=true;}renderAll();renderParallelSearchPanels();renderVendors();renderSoloTechs();note('global',tname(t)+' added to Vendors. It is no longer treated as Solo.','success');return vd;}catch(e){note('global','Could not add Vendor: '+String(e?.message||e),'error');}}
+async function addDirectoryTechToVendor(id){const t=techs.find(x=>String(f(x,'id'))===String(id));if(!t){note('global','Technician record not found.','error');return;}try{const vd=await ensureVendorFromCandidate(t,'technician_db_moved_to_vendor');if(vd?.id){t.vendor_id=vd.id;t._vendor_id=vd.id;t.is_vendor=true;t.solo_list_member=false;}renderAll();renderVendors();renderSoloTechs();note('global',tname(t)+' added to Vendors and removed from Solo classification.','success');return vd;}catch(e){note('global','Could not add Vendor: '+String(e?.message||e),'error');}}
+
+async function moveSoloTechToVendor(id){const t=soloHiredTechs.find(x=>String(f(x,'id'))===String(id))||techs.find(x=>String(f(x,'id'))===String(id))||companyTechs.find(x=>String(f(x,'id'))===String(id));if(!t)return;try{await ensureVendorFromCandidate({...t,_source_kind:String(f(t,'_solo_kind'))==='company'?'company_map_independent':'solo_db'},String(f(t,'_solo_kind'))==='company'?'tech_map_moved_to_vendor':'solo_moved_to_vendor');soloHiredTechs=soloHiredTechs.filter(x=>String(f(x,'id'))!==String(id));renderSoloTechs();renderVendors();note('soloNotice',tname(t)+' moved to Vendors and will no longer be treated as Solo.','success');}catch(e){note('soloNotice','Could not move to Vendors: '+String(e?.message||e),'error');}}
+function openFastHireVendor(id){const vd=vendors.find(x=>String(f(x,'id'))===String(id));if(!vd){note('vendorNotice','Vendor not found.','error');return;}openFastHireModal(vendorCandidate(vd));}
+function vendorBookedWOs(vendorId){return (wos||[]).filter(w=>String(f(w,'assigned_vendor_id'))===String(vendorId)&&!['completed','cancelled','closed'].includes(String(f(w,'status')||'').toLowerCase())).sort((a,b)=>String(f(b,'created_at')||'').localeCompare(String(f(a,'created_at')||'')));}
+function openVendorTechModal(vendorId){const vd=vendors.find(x=>String(f(x,'id'))===String(vendorId));if(!vd)return;pendingVendorTechVendor=vd;clr('vendorTechNotice');$('vendorTechVendorInfo').innerHTML=`<b>${esc(f(vd,'name','business_name')||'Vendor')}</b><div class="muted" style="margin-top:5px">${esc([f(vd,'primary_trade'),f(vd,'city'),f(vd,'state')].filter(Boolean).join(' · '))}</div>`;$('vqt_name').value='';$('vqt_phone').value='';$('vqt_trade').value=f(vd,'primary_trade')||v('trade')||'';$('vqt_payment').value=f(vd,'payment_method')||'';$('vqt_city').value=f(vd,'city')||v('city')||'';$('vqt_state').value=f(vd,'state')||v('state')||'';$('vqt_zip').value=f(vd,'zip_code')||v('zip')||'';const select=$('vqt_wo'),rows=vendorBookedWOs(vendorId);select.innerHTML='<option value="">Save only — do not change a WO</option>'+rows.map(w=>`<option value="${esc(f(w,'id'))}">WO ${esc(f(w,'wo_number')||'—')} · ${esc(f(w,'trade')||'')} · ${esc([f(w,'city'),f(w,'state')].filter(Boolean).join(', '))}</option>`).join('');if(currentWO&&String(f(currentWO,'assigned_vendor_id'))===String(vendorId))select.value=f(currentWO,'id');$('vendorTechModal').classList.add('show');}
+function closeVendorTechModal(){$('vendorTechModal')?.classList.remove('show');pendingVendorTechVendor=null;clr('vendorTechNotice');}
+async function saveVendorTechnicianQuick(){const vd=pendingVendorTechVendor;if(!vd)return;const name=v('vqt_name').trim(),phone=ph(v('vqt_phone')),trade=v('vqt_trade').trim(),city=v('vqt_city').trim(),state=soloStateCode(v('vqt_state')),zip=cleanZip(v('vqt_zip')),payment=v('vqt_payment').trim(),woId=v('vqt_wo');if(!name){note('vendorTechNotice','Technician name is required.','error');return;}if(phone.length!==10){note('vendorTechNotice','Enter a valid 10-digit technician phone.','error');return;}if(!trade){note('vendorTechNotice','Trade is required.','error');return;}try{let tech=techs.find(x=>candidatePhone10(x)===phone)||null;if(!tech){const rows=await req('/technicians?normalized_phone=eq.'+encodeURIComponent(phone)+'&limit=1');tech=Array.isArray(rows)?rows[0]:null;}const tp={name,phone,normalized_phone:phone,primary_trade:trade,city:city||null,state:state||null,zip_code:zip||null,is_external:true,is_vendor:false,vendor_id:f(vd,'id'),solo_list_member:false,source_type:'vendor_provided_tech',source_platform:'Vendor: '+(f(vd,'name','business_name')||'Vendor'),active:true,updated_at:new Date().toISOString()};Object.keys(tp).forEach(k=>{if(tp[k]===null||tp[k]==='')delete tp[k];});let tr=tech?await req('/technicians?id=eq.'+encodeURIComponent(f(tech,'id')),{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(tp)}):await req('/technicians',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(tp)});tech=Array.isArray(tr)?tr[0]:tr;if(!tech?.id)throw new Error('Technician record could not be saved.');const ti=techs.findIndex(x=>String(f(x,'id'))===String(f(tech,'id')));if(ti>=0)techs[ti]=tech;else techs.unshift(tech);const link={vendor_id:f(vd,'id'),technician_id:f(tech,'id'),name,phone,normalized_phone:phone,primary_trade:trade,city:city||null,state:state||null,zip_code:zip||null,payment_method:payment||null,updated_at:new Date().toISOString()};Object.keys(link).forEach(k=>{if(link[k]===null||link[k]==='')delete link[k];});let existing=vendorTechLinks.find(x=>String(f(x,'vendor_id'))===String(f(vd,'id'))&&candidatePhone10(x)===phone);let lr=existing?await req('/vendor_technicians?id=eq.'+encodeURIComponent(f(existing,'id')),{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(link)}):await req('/vendor_technicians',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(link)});lr=Array.isArray(lr)?lr[0]:lr;if(lr){const li=vendorTechLinks.findIndex(x=>String(f(x,'id'))===String(f(lr,'id')));if(li>=0)vendorTechLinks[li]=lr;else vendorTechLinks.unshift(lr);}if(woId){const now=new Date().toISOString();const wr=await patchWOBookingSafe(woId,{assigned_vendor_id:f(vd,'id'),assigned_technician_id:f(tech,'id'),locked_assigned_tech_id:f(tech,'id'),locked_at:now,workflow_stage:'en_route',status:'en_route',follow_up_tag:'En Route',stage_updated_at:now});const w=wos.find(x=>String(f(x,'id'))===String(woId));if(w)Object.assign(w,Array.isArray(wr)?wr[0]:wr,{assigned_vendor_id:f(vd,'id'),assigned_technician_id:f(tech,'id')});try{await ensureWorkedWithOnBooking(tech,f(tech,'id'),f(vd,'id'),woId,{payment_method:payment,booking_method:'vendor_technician_attach'});}catch(e){console.warn('Vendor technician Worked With save skipped',e);}}renderVendors();renderAll();closeVendorTechModal();note('vendorNotice',name+' saved under '+(f(vd,'name','business_name')||'the vendor')+(woId?' and attached to the vendor-booked WO.':'.'),'success');}catch(e){note('vendorTechNotice','Could not save vendor technician: '+String(e?.message||e),'error');}}
+async function ensureWorkedWithOnBooking(cand,techId,vendorId,woId,data={}){
+  const phone=candidatePhone10(cand)||ph(String(f(cand,'phone')||''));if(!phone)return null;const now=new Date().toISOString();let existing=(workedWithTechs||[]).find(x=>candidatePhone10(x)===phone)||null;try{if(!existing){const rows=await req('/worked_with_technicians?normalized_phone=eq.'+encodeURIComponent(phone)+'&limit=1');existing=Array.isArray(rows)?rows[0]:null;}const oldRaw=f(existing,'raw_data');const raw=oldRaw&&typeof oldRaw==='object'?{...oldRaw}:{};const alreadySame=String(raw.last_booked_wo_id||'')===String(woId||'');raw.last_booked_wo_id=woId||null;raw.last_booking_method=data.booking_method||'hiring';raw.vendor_id=vendorId||null;const payload={technician_id:techId||null,vendor_id:vendorId||null,name:tname(cand)||f(data,'technician_name')||null,business_name:f(cand,'business_name')||tname(cand)||null,phone:String(f(cand,'phone')||phone),normalized_phone:phone,primary_trade:String(f(cand,'primary_trade','trade')||hiringWOContext().trade||'')||null,city:String(f(cand,'city')||hiringWOContext().city||'')||null,state:soloStateCode(f(cand,'state')||hiringWOContext().state)||null,zip_code:cleanZip(f(cand,'zip_code')||hiringWOContext().zip_code)||null,assessment_fee:Number(data.assessment_fee||0)||0,payment_method:String(data.payment_method||f(cand,'payment_method')||'')||null,job_count:alreadySame?Math.max(1,Number(f(existing,'job_count')||1)):Math.max(1,Number(f(existing,'job_count')||0)+1),source_name:vendorId?'Vendor Hire':(f(cand,'source_platform')||'MDAMA Hire'),notes:'Automatically added after successful booking/hiring.',raw_data:raw,last_used_at:now,updated_at:now};Object.keys(payload).forEach(k=>{if(payload[k]===null||payload[k]==='')delete payload[k];});let saved;try{saved=existing?await req('/worked_with_technicians?id=eq.'+encodeURIComponent(f(existing,'id')),{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)}):await req('/worked_with_technicians',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});}catch(e){if(/vendor_id|schema cache/i.test(String(e?.message||e))){delete payload.vendor_id;saved=existing?await req('/worked_with_technicians?id=eq.'+encodeURIComponent(f(existing,'id')),{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)}):await req('/worked_with_technicians',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});}else throw e;}saved=Array.isArray(saved)?saved[0]:saved;if(saved){const i=workedWithTechs.findIndex(x=>String(f(x,'id'))===String(f(saved,'id')));if(i>=0)workedWithTechs[i]=saved;else workedWithTechs.unshift(saved);}if(vendorId){const vd=vendors.find(x=>String(f(x,'id'))===String(vendorId));if(vd){const assignedCount=(wos||[]).filter(w=>String(f(w,'assigned_vendor_id'))===String(vendorId)).length;const patch={jobs_count:Math.max(Number(f(vd,'jobs_count')||0),assignedCount,1),last_used_at:now,updated_at:now};try{await req('/vendors?id=eq.'+encodeURIComponent(vendorId),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(patch)});Object.assign(vd,patch);}catch{}}}return saved;}catch(e){console.warn('Automatic Worked With save failed after booking',e);return null;}
+}
+
 function searchCandidateCardHtml(t){
   const sm=candidateSourceMeta(t);
   const sourceBadge='<span style="display:inline-block;padding:2px 8px;border-radius:4px;background:'+sm.bg+';color:#fff;font-size:10px;font-weight:700;letter-spacing:.5px">'+sm.label+'</span>';
@@ -3222,7 +3329,8 @@ function searchCandidateCardHtml(t){
     ${openLink?`<div style="margin-top:7px"><a class="btn ghost small" target="_blank" rel="noopener noreferrer" href="${esc(openLink)}">${esc(openLabel)} ↗</a></div>`:''}
     ${t._reason?`<div class="reason">${esc(t._reason)}</div>`:''}
     <div style="margin-top:11px;display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn success small" onclick="addSearchCandidateToSolo('${esc(f(t,'id'))}')" ${candidateInSolo(t)||!candidatePhone10(t)?'disabled':''}>${candidateInSolo(t)?'✓ IN SOLO':'ADD TO SOLO'}</button>
+      <button class="btn success small" onclick="addSearchCandidateToSolo('${esc(f(t,'id'))}')" ${candidateInSolo(t)||candidateInVendor(t)||!candidatePhone10(t)?'disabled':''}>${candidateInSolo(t)?'✓ IN SOLO':candidateInVendor(t)?'VENDOR — NOT SOLO':'ADD TO SOLO'}</button>
+      <button class="btn ghost small" onclick="addSearchCandidateToVendor('${esc(f(t,'id'))}')" ${candidateInVendor(t)?'disabled':''}>${candidateInVendor(t)?'✓ IN VENDORS':'ADD TO VENDOR'}</button>
       <button class="btn ghost small" onclick="addSearchCandidateToWorkedWith('${esc(f(t,'id'))}')" ${candidateInWorkedWith(t)||!candidatePhone10(t)?'disabled':''}>${candidateInWorkedWith(t)?'✓ WORKED WITH':'ADD TO WORKED WITH'}</button>
       ${f(t,'_source_kind')==='live_web'?`<button class="btn success small" onclick="addToLiveSearchDb('${esc(f(t,'id'))}')" ${liveDbHas(t)?'disabled':''}>${liveDbHas(t)?'✓ ADDED TO LIVE SEARCH DB':'ADD TO LIVE SEARCH DB'}</button>`:''}
       ${f(t,'_source_kind')==='yelp'?`<button class="btn primary small" onclick="startYelpHiring('${esc(f(t,'id'))}')">Start Hiring</button>`:`<button class="btn primary small" onclick="assign('${esc(f(t,'id'))}')">Start Hiring</button>`}
@@ -3279,13 +3387,13 @@ function showCandidates(){
     ${openLink?`<div style="margin-top:7px"><a class="btn ghost small" target="_blank" rel="noopener noreferrer" href="${esc(openLink)}">${openLabel} ↗</a></div>`:''}
     ${t._reason?`<div class="reason">${esc(t._reason)}</div>`:''}
     <div style="margin-top:11px;display:flex;gap:8px;flex-wrap:wrap">
-      ${searchSource?`<button class="btn success small" onclick="addSearchCandidateToSolo('${esc(f(t,'id'))}')" ${candidateInSolo(t)||!candidatePhone10(t)?'disabled':''}>${candidateInSolo(t)?'✓ IN SOLO':'ADD TO SOLO'}</button><button class="btn ghost small" onclick="addSearchCandidateToWorkedWith('${esc(f(t,'id'))}')" ${candidateInWorkedWith(t)||!candidatePhone10(t)?'disabled':''}>${candidateInWorkedWith(t)?'✓ WORKED WITH':'ADD TO WORKED WITH'}</button>`:''}
+      ${searchSource?`<button class="btn success small" onclick="addSearchCandidateToSolo('${esc(f(t,'id'))}')" ${candidateInSolo(t)||candidateInVendor(t)||!candidatePhone10(t)?'disabled':''}>${candidateInSolo(t)?'✓ IN SOLO':candidateInVendor(t)?'VENDOR — NOT SOLO':'ADD TO SOLO'}</button><button class="btn ghost small" onclick="addSearchCandidateToVendor('${esc(f(t,'id'))}')" ${candidateInVendor(t)?'disabled':''}>${candidateInVendor(t)?'✓ IN VENDORS':'ADD TO VENDOR'}</button><button class="btn ghost small" onclick="addSearchCandidateToWorkedWith('${esc(f(t,'id'))}')" ${candidateInWorkedWith(t)||!candidatePhone10(t)?'disabled':''}>${candidateInWorkedWith(t)?'✓ WORKED WITH':'ADD TO WORKED WITH'}</button>`:''}
       ${f(t,'_source_kind')==='live_web'?`<button class="btn success small" onclick="addToLiveSearchDb('${esc(f(t,'id'))}')" ${liveDbHas(t)?'disabled':''}>${liveDbHas(t)?'✓ ADDED TO LIVE SERCH DB':'ADD TO LIVE SERCH DB'}</button>`:''}
       ${f(t,'_source_kind')==='yelp'
         ? `<button class="btn primary small" onclick="startYelpHiring('${esc(f(t,'id'))}')">Start Hiring</button><button class="btn fast-hire-btn small" onclick="openFastHireById('${esc(f(t,'id'))}')">Fast Hire</button>`
         : `<button class="btn ghost small" onclick="undoTechStatusFor('${esc(f(t,'id'))}')" ${canUndoTechStatus(f(t,'id'))?'':'disabled'}>Undo status</button>
           ${t._assigned?'<span class="badge b-accepted" style="align-self:center">✓ Assigned to this WO</span>':`
-          <button class="btn danger small" onclick="vendor('${esc(f(t,'id'))}',false,true)">Mark vendor</button>
+          <button class="btn ghost small" onclick="${candidateInVendor(t)?"go('vendors')":"addAnyCandidateToVendor('"+esc(f(t,'id'))+"')"}">${candidateInVendor(t)?'✓ IN VENDORS':'ADD TO VENDOR'}</button>
           <button class="btn ghost small" onclick="candInteract('${esc(f(t,'id'))}','responded')">Responded</button>
           <button class="btn primary small" onclick="assign('${esc(f(t,'id'))}')">Start Hiring</button><button class="btn fast-hire-btn small" onclick="openFastHireById('${esc(f(t,'id'))}')">Fast Hire</button>`}`}
     </div></div>`;
@@ -3620,7 +3728,8 @@ async function saveHiring(complete){
       const phone=ph(data.technician_phone);let tech=techs.find(t=>ph(String(f(t,'phone','normalized_phone')))==phone),now=new Date().toISOString();
       const hiring_profile={technician_type:data.technician_type,commercial_repairs:data.commercial_repairs,free_estimate:data.free_estimate,payment_method:data.payment_method||'',payment_details:data.payment_details||'',printer_access:data.printer_access||'',company_contact_confirmed:data.company_contact_confirmed,approval_rules_confirmed:data.approval_rules_confirmed,represents_company:true,dispatcher_is_poc:true,no_work_without_approval:true,no_charges_onsite:true,profile_source_wo_id:workflowWOId,updated_at:now};
       if(tech){const tp={name:data.technician_name,phone,normalized_phone:phone,hiring_profile,onboarding_completed:true,last_hired_at:now,profile_incomplete:false};if(!f(tech,'primary_trade'))tp.primary_trade=f(workflowWO(),'trade')||null;await persistTechnicianHiringProfile(tech,tp);Object.assign(tech,tp);}else{const tp={name:data.technician_name,phone,normalized_phone:phone,primary_trade:f(workflowWO(),'trade')||null,city:f(workflowWO(),'city')||null,state:f(workflowWO(),'state')||null,is_external:true,source_type:'new_hire',profile_incomplete:false,hiring_profile,onboarding_completed:true,last_hired_at:now};const r=await persistTechnicianHiringProfile(null,tp);tech=Array.isArray(r)?r[0]:r;techs.unshift(tech);}
-      await updateWOStage('en_route',{assigned_technician_id:f(tech,'id'),technician_eta_at:data.eta_at});workflowStageView='arrival';renderWorkflow();note('workflowNotice','Technician hired. The reusable profile was saved and the WO is En Route.','success');
+      let vendorId=null,vendorRow=null;if(String(data.technician_type||'').toLowerCase()==='vendor'){try{vendorRow=await ensureVendorFromCandidate({...tech,primary_trade:f(workflowWO(),'trade'),city:f(workflowWO(),'city'),state:f(workflowWO(),'state'),zip_code:f(workflowWO(),'zip_code'),_source_kind:'workflow_hiring'},'workflow_hiring');vendorId=f(vendorRow,'id');}catch(e){console.warn('Vendor record save skipped',e);}}
+      await updateWOStage('en_route',{assigned_technician_id:f(tech,'id'),technician_eta_at:data.eta_at,...(vendorId?{assigned_vendor_id:vendorId}:{})});try{await ensureWorkedWithOnBooking(vendorId?(vendorRow||tech):tech,f(tech,'id'),vendorId,workflowWOId,{...data,booking_method:'workflow_hiring'});}catch(e){console.warn('Worked With auto-save skipped',e);}workflowStageView='arrival';renderWorkflow();note('workflowNotice','Technician hired. The reusable profile was saved, the WO is En Route, and the resource was added to Worked With.','success');
     }else note('workflowNotice','Hiring draft saved in Supabase.','success');
   }catch(e){note('workflowNotice','Could not save Hiring: '+e.message,'error');}
 }
@@ -4584,9 +4693,10 @@ async function saveExternalAndStartHiring(){
 }
 
 // ---- Fast Hire ---------------------------------------------------------
-let pendingFastHireTech=null;
+let pendingFastHireTech=null,pendingFastHireVendorId=null;
 function resolveFastHireTech(id){
   const key=String(id||'');
+  if(key.startsWith('vendor-')){const vd=vendors.find(x=>String(f(x,'id'))===key.slice(7));return vd?vendorCandidate(vd):null;}
   return searchCandidateById(key)||techs.find(x=>String(f(x,'id'))===key)||soloHiredTechs.find(x=>String(f(x,'id'))===key)||workedWithTechs.find(x=>String(f(x,'id'))===key)||null;
 }
 function openFastHireLiveDb(id){
@@ -4597,81 +4707,59 @@ function openFastHireById(id){const t=resolveFastHireTech(id);if(!t){note('globa
 function fastHireWOContext(){return hiringWOContext();}
 function fastHireStoreLabel(ctx){const name=String(ctx?.store_name||ctx?.client_name||'').trim(),num=String(ctx?.store_number||'').trim();return name&&num&&!name.includes(num)?name+' - '+num:(name||num||'');}
 function fastHireEstimateLabel(){const free=v('fh_free');if(free==='yes')return 'Free estimate';if(free==='no'){const fee=v('fh_fee');return fee!==''?'Paid estimate / assessment: $'+Number(fee||0).toFixed(2):'Paid estimate / assessment fee: not entered yet';}return 'Estimate terms: not confirmed yet';}
+function buildFastHireTLSummary(){
+  const ctx=fastHireWOContext(),name=v('fh_name').trim()||f(pendingFastHireTech||{},'name','business_name')||'—',phone=v('fh_phone').trim()||f(pendingFastHireTech||{},'phone')||'—',eta=v('fh_eta'),etaText=eta?new Date(eta).toLocaleString():'Not entered',payment=v('fh_payment').trim()||'Not entered',kind=pendingFastHireVendorId?'Vendor':'Technician';
+  return `FAST HIRE — TL\nWO: ${ctx.wo_number||'Draft'}\n${kind}: ${name}\nPhone: ${phone}\nEstimate: ${fastHireEstimateLabel()}\nETA: ${etaText}\nPayment: ${payment}`;
+}
 function buildFastHireTechnicianMessage(){
   const ctx=fastHireWOContext(),name=v('fh_name').trim()||f(pendingFastHireTech||{},'name','business_name')||'Technician',store=fastHireStoreLabel(ctx),address=ctx.full_address||'',issue=ctx.summary||ctx.sow||'',eta=v('fh_eta'),etaText=eta?new Date(eta).toLocaleString():'Not entered yet',payment=v('fh_payment').trim()||'Not entered yet';
-  return `Hi ${name}, this is Jacob from Jayco Maintenance.
-
-You are confirmed for the following service call:
-WO#: ${ctx.wo_number||'Draft'}
-Trade: ${ctx.trade||'—'}${store?`
-Store: ${store}`:''}
-Address: ${address||'—'}
-Issue: ${issue||'—'}
-
-ETA: ${etaText}
-Estimate: ${fastHireEstimateLabel()}
-Payment method on file: ${payment}
-
-IMPORTANT — BEFORE STARTING WORK:
-• Introduce yourself on behalf of Jayco Maintenance.
-• Send 1 clear outside arrival photo and at least 4 clear before photos.
-• Inspect the issue only. Do NOT start work and do NOT discuss pricing/charges with anyone on-site.
-• Call me with the diagnosis and your repair plan, then wait for my approval before beginning any work.
-
-AFTER THE WORK IS COMPLETED:
-• Send at least 4 clear after photos.
-• Get the sign-off sheet signed by the store manager.
-• Have the manager on duty speak with me so I can confirm completion.
-
-Please reply CONFIRMED to acknowledge the assignment and requirements.`;
+  const intro=pendingFastHireVendorId?`Hi ${name}, this is Jacob from Jayco Maintenance.\n\nYour company is confirmed for the following service call:`:`Hi ${name}, this is Jacob from Jayco Maintenance.\n\nYou are confirmed for the following service call:`;
+  return `${intro}\nWO#: ${ctx.wo_number||'Draft'}\nTrade: ${ctx.trade||'—'}${store?`\nStore: ${store}`:''}\nAddress: ${address||'—'}\nIssue: ${issue||'—'}\n\nETA: ${etaText}\nEstimate: ${fastHireEstimateLabel()}\nPayment method on file: ${payment}\n\nIMPORTANT — BEFORE STARTING WORK:\n• Introduce yourself on behalf of Jayco Maintenance.\n• Send 1 clear outside arrival photo and at least 4 clear before photos.\n• Inspect the issue only. Do NOT start work and do NOT discuss pricing/charges with anyone on-site.\n• Call me with the diagnosis and your repair plan, then wait for my approval before beginning any work.\n\nAFTER THE WORK IS COMPLETED:\n• Send at least 4 clear after photos.\n• Get the sign-off sheet signed by the store manager.\n• Have the manager on duty speak with me so I can confirm completion.\n\nPlease reply CONFIRMED to acknowledge the assignment and requirements.`;
 }
-function renderFastHireMessage(){const box=$('fastHireMessage');if(box)box.value=buildFastHireTechnicianMessage();}
+function renderFastHireMessage(){const box=$('fastHireMessage');if(box)box.value=buildFastHireTechnicianMessage();const tl=$('fastHireTLSummary');if(tl)tl.value=buildFastHireTLSummary();}
+async function copyFastHireTLSummary(){const text=buildFastHireTLSummary();let copied=false;try{await navigator.clipboard.writeText(text);copied=true;}catch{const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();try{copied=document.execCommand('copy');}catch{}ta.remove();}window._lastFastHireTLSummary=text;note('fastHireNotice',copied?'TL summary copied — paste it to the Team Leader.':'TL summary is ready below. Clipboard access was blocked; copy it manually.',copied?'success':'info');return copied;}
 async function copyFastHireMessage(){const text=buildFastHireTechnicianMessage();try{await navigator.clipboard.writeText(text);}catch{const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch{}ta.remove();}note('fastHireNotice','Fast Hire technician message copied.','success');setTimeout(()=>clr('fastHireNotice'),1800);}
 function toggleFastHireFee(){const paid=v('fh_free')==='no',box=$('fastHireFeeField');if(box)box.classList.toggle('hidden',!paid);if(!paid&&$('fh_fee'))$('fh_fee').value='';renderFastHireMessage();}
-function closeFastHireModal(){const m=$('fastHireModal');if(m)m.classList.remove('show');pendingFastHireTech=null;clr('fastHireNotice');}
+function closeFastHireModal(){const m=$('fastHireModal');if(m)m.classList.remove('show');pendingFastHireTech=null;pendingFastHireVendorId=null;clr('fastHireNotice');}
 function openFastHireModal(tech){
   const ctx=fastHireWOContext();
   if(!ctx.trade||(!ctx.wo_number&&!ctx.summary&&!ctx.sow)){go('newwo');note('wonotice','Paste and analyze the Work Order first, then use Fast Hire.','info');return;}
-  pendingFastHireTech=tech;clr('fastHireNotice');
-  const name=f(tech,'name','business_name')||'',phone=f(tech,'phone','normalized_phone','phone_display')||'',profile=hiringProfileForTech(tech)||{};
+  pendingFastHireTech=tech;const knownVendor=vendorForCandidate(tech),legacyVendorFlag=b(f(tech,'is_vendor'))||Boolean(f(tech,'_is_vendor_candidate'));pendingFastHireVendorId=String(f(tech,'_vendor_id','vendor_id')||f(knownVendor||{},'id')||'').trim()||null;if(pendingFastHireVendorId&&!f(tech,'_vendor_id'))tech._vendor_id=pendingFastHireVendorId;if(legacyVendorFlag)tech._is_vendor_candidate=true;clr('fastHireNotice');
+  const name=f(tech,'name','business_name')||'',phone=f(tech,'phone','normalized_phone','phone_display')||'',profile=hiringProfileForTech(tech)||{},isVendor=Boolean(pendingFastHireVendorId||legacyVendorFlag);
+  if($('fh_name_label'))$('fh_name_label').textContent=isVendor?'Vendor / company name *':'Technician name *';if($('fh_phone_label'))$('fh_phone_label').textContent=isVendor?'Vendor contact phone *':'Phone *';
   $('fh_name').value=name;$('fh_phone').value=phone;$('fh_free').value=String(profile.free_estimate||'');$('fh_fee').value=profile.free_estimate==='no'?String(profile.assessment_fee||''):'';$('fh_eta').value='';$('fh_payment').value=String(profile.payment_method||profile.preferred_payment_method||f(tech,'payment_method','preferred_payment_method')||'').trim();toggleFastHireFee();
-  $('fastHireTechInfo').innerHTML=`<div class="wo-sticky-label">Fast assignment</div><b>${esc(name||'Technician')}</b><div class="muted" style="margin-top:5px">WO ${esc(ctx.wo_number||'Draft')} · ${esc(ctx.trade||'—')} · ${esc(ctx.full_address||'')}</div><div class="muted" style="margin-top:5px">Only the minimum booking details are required here.</div>`;
-  renderFastHireMessage();
-  $('fastHireModal').classList.add('show');
+  $('fastHireTechInfo').innerHTML=`<div class="wo-sticky-label">${isVendor?'Fast vendor assignment':'Fast assignment'}</div><b>${esc(name||(isVendor?'Vendor':'Technician'))}</b><div class="muted" style="margin-top:5px">WO ${esc(ctx.wo_number||'Draft')} · ${esc(ctx.trade||'—')} · ${esc(ctx.full_address||'')}</div><div class="muted" style="margin-top:5px">Only the minimum booking details are required here. The successful booking is automatically added to Worked With.</div>`;
+  renderFastHireMessage();$('fastHireModal').classList.add('show');
 }
 function fastHireData(){
-  const eta=v('fh_eta');return {fast_hire:true,technician_name:v('fh_name').trim(),technician_phone:ph(v('fh_phone')),free_estimate:v('fh_free'),assessment_fee:v('fh_free')==='no'?moneyValue(v('fh_fee')):0,eta_at:eta?new Date(eta).toISOString():null,eta_text:eta?new Date(eta).toLocaleString():'',payment_method:v('fh_payment').trim(),payment_details:'',booking_method:'fast_hire',address_revealed:true,proceed_to_site_confirmed:true,completed_via_fast_hire:true};
+  const eta=v('fh_eta');return {fast_hire:true,technician_name:v('fh_name').trim(),technician_phone:ph(v('fh_phone')),free_estimate:v('fh_free'),assessment_fee:v('fh_free')==='no'?moneyValue(v('fh_fee')):0,eta_at:eta?new Date(eta).toISOString():null,eta_text:eta?new Date(eta).toLocaleString():'',payment_method:v('fh_payment').trim(),payment_details:'',booking_method:pendingFastHireVendorId?'vendor_fast_hire':'fast_hire',vendor_id:pendingFastHireVendorId||null,address_revealed:true,proceed_to_site_confirmed:true,completed_via_fast_hire:true};
 }
 async function persistFastHireProfile(techId,data,woId){
-  const t=techs.find(x=>String(f(x,'id'))===String(techId)),old=t&&f(t,'hiring_profile')&&typeof f(t,'hiring_profile')==='object'?f(t,'hiring_profile'):{};
-  const now=new Date().toISOString(),profile={...old,free_estimate:data.free_estimate,assessment_fee:data.assessment_fee,payment_method:data.payment_method,profile_source_wo_id:woId,last_booking_method:'fast_hire',updated_at:now};
-  const payload={hiring_profile:profile,last_hired_at:now,profile_incomplete:true};
+  const t=techs.find(x=>String(f(x,'id'))===String(techId)),old=t&&f(t,'hiring_profile')&&typeof f(t,'hiring_profile')==='object'?f(t,'hiring_profile'):{},now=new Date().toISOString(),profile={...old,free_estimate:data.free_estimate,assessment_fee:data.assessment_fee,payment_method:data.payment_method,profile_source_wo_id:woId,last_booking_method:data.booking_method,updated_at:now},payload={hiring_profile:profile,last_hired_at:now,profile_incomplete:true};
   try{await persistTechnicianHiringProfile(t||{id:techId},payload);if(t)Object.assign(t,payload);}catch(e){console.warn('Fast Hire profile save failed',e);}
 }
 async function syncFastHireTechnicianIdentity(techId,data){
-  const t=techs.find(x=>String(f(x,'id'))===String(techId)),payload={name:data.technician_name,phone:data.technician_phone,normalized_phone:data.technician_phone};
+  const t=techs.find(x=>String(f(x,'id'))===String(techId)),payload={name:data.technician_name,phone:data.technician_phone,normalized_phone:data.technician_phone,...(data.vendor_id?{is_vendor:true,vendor_id:data.vendor_id,solo_list_member:false}:{})};
   try{await req('/technicians?id=eq.'+encodeURIComponent(techId),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(payload)});if(t)Object.assign(t,payload);}catch(e){console.warn('Fast Hire technician identity sync failed',e);}
 }
 async function confirmFastHire(){
-  clr('fastHireNotice');if(!pendingFastHireTech){note('fastHireNotice','No technician selected.','error');return;}
+  clr('fastHireNotice');if(!pendingFastHireTech){note('fastHireNotice','No technician/vendor selected.','error');return;}
   const data=fastHireData(),phone=ph(data.technician_phone),btn=$('confirmFastHireBtn');
-  if(!data.technician_name){note('fastHireNotice','Technician name is required.','error');return;}
-  if(phone.length!==10){note('fastHireNotice','Enter a valid 10-digit technician phone number.','error');return;}
-  if(!data.free_estimate){note('fastHireNotice','Choose whether the estimate is free.','error');return;}
-  if(data.free_estimate==='no'&&v('fh_fee')===''){note('fastHireNotice','Enter the estimate / assessment fee.','error');return;}
-  if(!data.eta_at){note('fastHireNotice','Arrival time / ETA is required.','error');return;}
-  if(!data.payment_method){note('fastHireNotice','Payment method is required.','error');return;}
-  const old=btn?.textContent||'FAST HIRE & BOOK NOW';if(btn){btn.disabled=true;btn.textContent='BOOKING…';}note('fastHireNotice','Fast booking the technician…','info');
+  if(!data.technician_name){note('fastHireNotice','Name is required.','error');return;}if(phone.length!==10){note('fastHireNotice','Enter a valid 10-digit phone number.','error');return;}if(!data.free_estimate){note('fastHireNotice','Choose whether the estimate is free.','error');return;}if(data.free_estimate==='no'&&v('fh_fee')===''){note('fastHireNotice','Enter the estimate / assessment fee.','error');return;}if(!data.eta_at){note('fastHireNotice','Arrival time / ETA is required.','error');return;}if(!data.payment_method){note('fastHireNotice','Payment method is required.','error');return;}
+  const tlText=buildFastHireTLSummary();window._lastFastHireTLSummary=tlText;let tlCopied=false;try{tlCopied=await copyFastHireTLSummary();}catch{}
+  const old=btn?.textContent||'FAST HIRE & BOOK NOW';if(btn){btn.disabled=true;btn.textContent='BOOKING…';}note('fastHireNotice','Booking the WO now…','info');
   try{
     const woResult=await saveWOForHiringOnly();if(!woResult?.id)throw new Error('The WO could not be saved before Fast Hire.');
-    const cand={...pendingFastHireTech,name:data.technician_name,phone,normalized_phone:phone};
-    const persisted=await ensureBookingTechnician(cand),techId=persisted.id;
-    await syncFastHireTechnicianIdentity(techId,data);
-    const booked=await lockWOToTech(woResult.id,techId,data);
-    const bookedWO={...woResult,...(booked||{}),assigned_technician_id:techId,technician_eta_at:data.eta_at,workflow_stage:f(booked,'workflow_stage')||'en_route',follow_up_tag:f(booked,'follow_up_tag')||'En Route'};
+    let vendorId=data.vendor_id||null,vendorRow=vendorId?vendors.find(x=>String(f(x,'id'))===String(vendorId)):null;
+    if((vendorId||f(pendingFastHireTech,'_is_vendor_candidate'))&&!vendorRow){vendorRow=await ensureVendorFromCandidate(pendingFastHireTech,'fast_hire_vendor');vendorId=f(vendorRow,'id');data.vendor_id=vendorId;data.booking_method='vendor_fast_hire';}
+    const cand={...pendingFastHireTech,name:data.technician_name,phone,normalized_phone:phone,_vendor_id:vendorId||f(pendingFastHireTech,'_vendor_id')||null,_is_vendor_candidate:Boolean(vendorId)};
+    const persisted=await ensureBookingTechnician(cand),techId=persisted.id;await syncFastHireTechnicianIdentity(techId,data);
+    const booked=await lockWOToTech(woResult.id,techId,data),bookedWO={...woResult,...(booked||{}),assigned_technician_id:techId,assigned_vendor_id:vendorId||null,technician_eta_at:data.eta_at,workflow_stage:f(booked,'workflow_stage')||'en_route',follow_up_tag:f(booked,'follow_up_tag')||'En Route'};
     const i=wos.findIndex(x=>String(f(x,'id'))===String(f(woResult,'id')));if(i>=0)wos[i]={...wos[i],...bookedWO};else wos.unshift(bookedWO);currentWO=bookedWO;
     try{await logCandidate(woResult,cand,techId,true);}catch(e){console.warn('Fast Hire candidate log failed',e);}try{await persistFastHireProfile(techId,data,woResult.id);}catch{}try{await hist(techId,'responded');await hist(techId,'accepted');}catch{}
-    const woNo=f(woResult,'wo_number')||'',techName=data.technician_name;closeFastHireModal();resetWOForm();try{await loadAll();}catch(e){console.warn('Refresh after Fast Hire failed',e);}go('workorders');note('global','FAST HIRE: WO '+woNo+' booked immediately with '+techName+' · ETA '+data.eta_text+'.','success');
+    if(!vendorId){try{await ensureSoloListMembership(techId,cand);}catch(e){console.warn('Fast Hire Solo save skipped',e);}}else{soloHiredTechs=soloHiredTechs.filter(x=>String(f(x,'id'))!==String(techId));}
+    try{await ensureWorkedWithOnBooking(vendorId?(vendorRow||cand):cand,techId,vendorId,woResult.id,data);}catch(e){console.warn('Fast Hire Worked With save skipped',e);}
+    const woNo=f(woResult,'wo_number')||'',name=data.technician_name,kind=vendorId?'vendor':'technician';closeFastHireModal();resetWOForm();try{await loadAll();}catch(e){console.warn('Refresh after Fast Hire failed',e);}go('workorders');note('global','FAST HIRE: WO '+woNo+' booked with '+kind+' '+name+' · ETA '+data.eta_text+'. '+(tlCopied?'TL summary copied to clipboard. ':'TL summary prepared; clipboard permission was blocked. ')+'The hire was added to Worked With.','success');
   }catch(e){console.error('Fast Hire failed',e);note('fastHireNotice','Fast Hire failed: '+String(e?.message||e),'error');if(btn){btn.disabled=false;btn.textContent=old;}}
 }
 
@@ -4927,11 +5015,12 @@ async function confirmAssignAndSave(){
     const woResult=await saveWOForHiringOnly();
     if(!woResult?.id)throw new Error('The WO could not be saved before booking.');
 
-    const persisted=await ensureBookingTechnician(pendingHiringTech);
+    let vendorRow=vendorForCandidate(pendingHiringTech),vendorId=vendorRow?String(f(vendorRow,'id')):null;const vendorFlag=Boolean(vendorId||b(f(pendingHiringTech,'is_vendor'))||f(pendingHiringTech,'_is_vendor_candidate'));if(vendorFlag&&!vendorId){vendorRow=await ensureVendorFromCandidate(pendingHiringTech,'guided_hiring_vendor');vendorId=String(f(vendorRow,'id')||'')||null;}if(vendorId)hiringData.vendor_id=vendorId;
+    const persisted=await ensureBookingTechnician(vendorId?{...pendingHiringTech,_vendor_id:vendorId,_is_vendor_candidate:true}:pendingHiringTech);
     const techId=persisted.id;
 
     const booked=await lockWOToTech(woResult.id,techId,hiringData);
-    const bookedWO={...woResult,...(booked||{}),assigned_technician_id:techId,workflow_stage:f(booked,'workflow_stage')||'en_route',follow_up_tag:f(booked,'follow_up_tag')||'En Route'};
+    const bookedWO={...woResult,...(booked||{}),assigned_technician_id:techId,assigned_vendor_id:vendorId||null,workflow_stage:f(booked,'workflow_stage')||'en_route',follow_up_tag:f(booked,'follow_up_tag')||'En Route'};
     const localIndex=wos.findIndex(x=>String(f(x,'id'))===String(f(woResult,'id')));
     if(localIndex>=0)wos[localIndex]={...wos[localIndex],...bookedWO};else wos.unshift(bookedWO);
     currentWO=bookedWO;
@@ -4940,7 +5029,8 @@ async function confirmAssignAndSave(){
     // visually hide an already successful WO assignment.
     try{await logCandidate(woResult,pendingHiringTech,techId,true);}catch(e){console.warn('Candidate log failed after booking',e);}
     try{await persistModalHiringProfile(techId,hiringData,woResult.id);}catch(e){console.warn('Hiring profile save failed after booking',e);}
-    let soloSaved=false;try{soloSaved=await ensureSoloListMembership(techId,pendingHiringTech);}catch(e){console.warn('Solo list save failed after booking',e);}
+    let soloSaved=false;if(vendorId){try{await req('/technicians?id=eq.'+encodeURIComponent(techId),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({is_vendor:true,vendor_id:vendorId,solo_list_member:false,vendor_marked_at:new Date().toISOString()})});}catch(e){console.warn('Vendor technician classification save failed',e);}}else{try{soloSaved=await ensureSoloListMembership(techId,pendingHiringTech);}catch(e){console.warn('Solo list save failed after booking',e);}}
+    try{await ensureWorkedWithOnBooking(vendorId?(vendorRow||pendingHiringTech):pendingHiringTech,techId,vendorId,woResult.id,hiringData);}catch(e){console.warn('Worked With auto-save failed after booking',e);}
     try{await hist(techId,'responded');}catch{}
     try{await hist(techId,'accepted');}catch{}
 
@@ -4951,7 +5041,7 @@ async function confirmAssignAndSave(){
     resetWOForm();
     try{await loadAll();}catch(e){console.warn('Refresh after booking failed; local booked WO is retained.',e);}
     go('workorders');
-    note('global','WO '+woNo+' booked with '+techName+' and moved to My Orders'+(soloSaved?' · Solo Tech saved.':'.') ,'success');
+    note('global','WO '+woNo+' booked with '+techName+' and moved to My Orders · added to Worked With'+(vendorId?' · Vendor booking.':soloSaved?' · Solo Tech saved.':'.'),'success');
   }catch(e){
     console.error('Assign & Book Order failed',e);
     note('hiringNotice','Booking failed: '+(e.message||e),'error');
@@ -4971,14 +5061,24 @@ async function saveDocumentReturnWO(){
 async function createTechFromCandidate(cand){
   const phone = String(f(cand,'phone','normalized_phone')||'').replace(/\D/g,'').replace(/^1(\d{10})$/,'$1');
   const independentCompany = f(cand,'_source_kind')==='company_map_independent';
+  const vendorId=String(f(cand,'_vendor_id','vendor_id')||'').trim()||null;
+  const vendorCandidateFlag=Boolean(vendorId||f(cand,'_is_vendor_candidate')||f(cand,'_source_kind')==='vendor_db');
   if(phone){
     try{
       const existing=await req('/technicians?normalized_phone=eq.'+encodeURIComponent(phone)+'&limit=1');
-      if(Array.isArray(existing)&&existing[0])return existing[0];
+      if(Array.isArray(existing)&&existing[0]){
+        const row=existing[0];
+        if(vendorCandidateFlag){
+          const mark={is_vendor:true,vendor_id:vendorId,solo_list_member:false,vendor_marked_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+          try{const rr=await req('/technicians?id=eq.'+encodeURIComponent(f(row,'id')),{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(mark)});return Array.isArray(rr)?rr[0]:rr||{...row,...mark};}catch{return {...row,...mark};}
+        }
+        return row;
+      }
     }catch{}
   }
   const payload = {
     name: f(cand,'name','business_name') || 'Unknown',
+    business_name: f(cand,'business_name') || (vendorCandidateFlag?f(cand,'name'):null),
     phone: f(cand,'phone') || null,
     normalized_phone: phone || null,
     email: f(cand,'email') || null,
@@ -4992,14 +5092,15 @@ async function createTechFromCandidate(cand){
     source_url: f(cand,'source_url') || null,
     notes: independentCompany
       ? ['Hired from Tech Map directory.', f(cand,'notes')].filter(Boolean).join(' | ')
-      : (f(cand,'notes') || null),
-    source_platform: independentCompany ? 'Tech Map Hire' : (f(cand,'source_platform') || 'Solo (External)'),
-    source_type: independentCompany ? 'company_hired_copy' : (f(cand,'source_type') || 'solo_external'),
-    active: true, is_vendor: false
+      : (vendorCandidateFlag?'Vendor booking/contact record.':(f(cand,'notes') || null)),
+    source_platform: independentCompany ? 'Tech Map Hire' : (vendorCandidateFlag?'Vendor DB':(f(cand,'source_platform') || 'Solo (External)')),
+    source_type: independentCompany ? 'company_hired_copy' : (vendorCandidateFlag?'vendor_contact':(f(cand,'source_type') || 'solo_external')),
+    active: true, is_vendor: vendorCandidateFlag, vendor_id:vendorId, solo_list_member:vendorCandidateFlag?false:undefined
   };
+  Object.keys(payload).forEach(k=>payload[k]===undefined&&delete payload[k]);if(!vendorId)delete payload.vendor_id;
   try {
     const created = await req('/technicians', { method:'POST', body: JSON.stringify(payload) });
-    return created && created[0] ? created[0] : null;
+    return created && created[0] ? created[0] : created;
   } catch(e){ console.warn('createTech failed', e); return null; }
 }
 
@@ -5032,44 +5133,19 @@ async function logCandidate(wo, cand, techId, wasAssigned){
 }
 
 async function lockWOToTech(woId, techId, answers){
-  const now=new Date().toISOString();
-  // The WO assignment itself is the only critical booking write. If this fails,
-  // the booking failed. Supporting audit/profile rows are useful but must never
-  // make a successfully assigned WO look like the button did nothing.
-  const bookedRows=await patchWOBookingSafe(woId, {
-    assigned_technician_id: techId,
-    locked_assigned_tech_id: techId,
-    locked_at: now,
-    workflow_stage: 'en_route',
-    status: 'en_route',
-    follow_up_tag: 'En Route',
-    stage_updated_at: now,
-    ...(answers&&answers.eta_at?{technician_eta_at:answers.eta_at}:{})
-  });
-  const booked=Array.isArray(bookedRows)?bookedRows[0]:bookedRows;
-  if(!booked||String(f(booked,'assigned_technician_id'))!==String(techId)){
-    throw new Error('The WO was not assigned to the selected technician.');
+  const now=new Date().toISOString(),vendorId=String(answers?.vendor_id||'').trim()||null;
+  const bookingPayload={assigned_technician_id:techId,locked_assigned_tech_id:techId,locked_at:now,workflow_stage:'en_route',status:'en_route',follow_up_tag:'En Route',stage_updated_at:now,...(answers&&answers.eta_at?{technician_eta_at:answers.eta_at}:{}),...(vendorId?{assigned_vendor_id:vendorId}:{})};
+  let bookedRows=await patchWOBookingSafe(woId,bookingPayload),booked=Array.isArray(bookedRows)?bookedRows[0]:bookedRows;
+  // Some legacy triggers return a partial representation. Verify the committed WO before declaring failure.
+  if(!booked||String(f(booked,'assigned_technician_id'))!==String(techId)|| (vendorId&&String(f(booked,'assigned_vendor_id')||'')!==vendorId)){
+    try{const rows=await req('/work_orders?id=eq.'+encodeURIComponent(woId)+'&select=*');const fresh=Array.isArray(rows)?rows[0]:null;if(fresh)booked=fresh;}catch{}
   }
-  try{
-    await req('/work_order_stage_data?on_conflict=work_order_id,stage', {
-      method:'POST',
-      headers:{Prefer:'resolution=merge-duplicates,return=minimal'},
-      body:JSON.stringify({work_order_id:woId,stage:'new_hiring',data:answers||{},completed:true,completed_at:now,updated_at:now})
-    });
-  }catch(e){console.warn('Hiring stage audit could not be saved; WO booking remains valid.',e);}
-  try{
-    await req('/work_order_candidates?on_conflict=work_order_id,technician_id', {
-      method:'POST',
-      headers:{Prefer:'resolution=merge-duplicates,return=minimal'},
-      body: JSON.stringify({
-        work_order_id: woId,
-        technician_id: techId,
-        rank: 1,
-        reason: 'Assigned via Hiring flow',
-        outcome: 'assigned'
-      })
-    });
-  }catch(e){console.warn('Assigned-candidate audit could not be saved; WO booking remains valid.',e);}
+  if(!booked||String(f(booked,'assigned_technician_id'))!==String(techId))throw new Error('The WO was not assigned to the selected technician/vendor contact.');
+  if(vendorId&&String(f(booked,'assigned_vendor_id')||'')!==vendorId){
+    const vr=await req('/work_orders?id=eq.'+encodeURIComponent(woId),{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify({assigned_vendor_id:vendorId,updated_at:now})});booked=Array.isArray(vr)?vr[0]:vr||booked;
+  }
+  try{await req('/work_order_stage_data?on_conflict=work_order_id,stage',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({work_order_id:woId,stage:'new_hiring',data:answers||{},completed:true,completed_at:now,updated_at:now})});}catch(e){console.warn('Hiring stage audit could not be saved; WO booking remains valid.',e);}
+  try{await req('/work_order_candidates?on_conflict=work_order_id,technician_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({work_order_id:woId,technician_id:techId,rank:1,reason:vendorId?'Assigned through Vendor / Fast Hire':'Assigned via Hiring flow',outcome:'assigned'})});}catch(e){console.warn('Assigned-candidate audit could not be saved; WO booking remains valid.',e);}
   return booked;
 }
 
@@ -5343,8 +5419,8 @@ function renderSoloTechs(){
     const hired=String(f(t,'_solo_kind'))==='hired',src=String(f(t,'source_url')||'').trim(),id=String(f(t,'id')||'');
     const sourceHtml=hired?(soloExternalBadge(t)?'<span class="badge b-external">EXTERNAL SOLO</span>':'<span class="badge b-accepted">SAVED SOLO</span>'):'<span class="badge b-status">TECH MAP</span>';
     const actions=hired
-      ? `<button class="btn primary small" onclick="hireSoloListedTech('${esc(id)}')">Use for WO</button> <button class="btn ghost small ${b(f(t,'has_responded'))?'success':''}" onclick="toggleSoloTechFlag('${esc(id)}','responded')">${b(f(t,'has_responded'))?'✓ ':''}Responded</button> <button class="btn ghost small ${b(f(t,'has_completed_job'))?'success':''}" onclick="toggleSoloTechFlag('${esc(id)}','worked')">${b(f(t,'has_completed_job'))?'✓ ':''}Worked</button>${f(t,'phone','normalized_phone')?` <button class="btn ghost small" onclick="copySoloListedPhone('${esc(id)}')">Copy phone</button>`:''}`
-      : `<button class="btn primary small" onclick="useCompanyTech('${esc(id)}')">Use for WO</button>${f(t,'phone','normalized_phone')?` <button class="btn ghost small" onclick="copyCompanyPhone('${esc(id)}')">Copy phone</button>`:''}`;
+      ? `<button class="btn primary small" onclick="hireSoloListedTech('${esc(id)}')">Use for WO</button> <button class="btn ghost small" onclick="moveSoloTechToVendor('${esc(id)}')">Move to Vendor</button> <button class="btn ghost small ${b(f(t,'has_responded'))?'success':''}" onclick="toggleSoloTechFlag('${esc(id)}','responded')">${b(f(t,'has_responded'))?'✓ ':''}Responded</button> <button class="btn ghost small ${b(f(t,'has_completed_job'))?'success':''}" onclick="toggleSoloTechFlag('${esc(id)}','worked')">${b(f(t,'has_completed_job'))?'✓ ':''}Worked</button>${f(t,'phone','normalized_phone')?` <button class="btn ghost small" onclick="copySoloListedPhone('${esc(id)}')">Copy phone</button>`:''}`
+      : `<button class="btn primary small" onclick="useCompanyTech('${esc(id)}')">Use for WO</button> <button class="btn ghost small" onclick="moveSoloTechToVendor('${esc(id)}')">Move to Vendor</button>${f(t,'phone','normalized_phone')?` <button class="btn ghost small" onclick="copyCompanyPhone('${esc(id)}')">Copy phone</button>`:''}`;
     const lic=soloLicensed(t);
     return `<tr><td><b>${esc(f(t,'name','business_name')||'Unnamed tech')}</b>${f(t,'email')?`<div class="muted" style="font-size:11px">${esc(f(t,'email'))}</div>`:''}</td><td><b>${esc(String(f(t,'state')||'—').toUpperCase())}</b></td><td class="mono">${esc(f(t,'phone','normalized_phone')||'—')}</td><td>${esc(f(t,'primary_trade','trade')||'—')}</td><td>${esc([f(t,'city'),f(t,'state'),f(t,'zip_code')].filter(Boolean).join(', ')||f(t,'map_address')||'—')}</td><td>${t._dist!=null?`<span class="dist-chip">${esc(t._dist)} mi</span><div class="muted" style="font-size:10px;margin-top:3px">from WO ZIP</div>`:'—'}</td><td><span class="job-count-badge">${esc(soloJobCount(t))}</span></td><td>${lic===null?'<span class="muted">—</span>':`<span class="license-chip ${lic?'yes':'no'}">${lic?'Licensed':'Not licensed'}</span>`}</td><td>${sourceHtml}${!hired&&f(t,'map_layer')?`<div class="muted" style="font-size:10px;margin-top:4px">${esc(f(t,'map_layer'))}</div>`:''}${src?`<div style="margin-top:4px"><a href="${esc(src)}" target="_blank" rel="noopener" class="mono" style="font-size:10px">Open source</a></div>`:''}</td><td>${soloStatusHtml(t)}</td><td>${f(t,'rating')!==''?esc(f(t,'rating')):'—'}${f(t,'reviews_count')!==''?' <span class="muted">('+esc(f(t,'reviews_count'))+')</span>':''}</td><td style="white-space:nowrap">${actions}</td></tr>`;
   }).join(''):'<tr><td colspan="12" style="text-align:center;padding:26px" class="muted">No Solo Tech entries match these filters.</td></tr>';
@@ -5513,6 +5589,7 @@ async function confirmSoloQuickBooking(){
     }catch(e){console.warn('Could not save Solo TL brief',e);}
     const localBooked=wos.find(x=>String(f(x,'id'))===String(f(woResult,'id')));if(localBooked)Object.assign(localBooked,{assigned_technician_id:techId,locked_assigned_tech_id:techId,workflow_stage:'en_route',status:'en_route',follow_up_tag:'En Route'});
     try{await req('/technicians?id=eq.'+encodeURIComponent(techId),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({last_hired_at:new Date().toISOString(),has_responded:true,last_response_at:new Date().toISOString()})});}catch{}
+    try{await ensureWorkedWithOnBooking(tech,techId,null,woResult.id,{...brief,booking_method:'solo_quick'});}catch(e){console.warn('Solo quick Worked With auto-save skipped',e);}
     try{await hist(techId,'responded');}catch{}try{await hist(techId,'accepted');}catch{}
     closeHiringModal();resetWOForm();await loadAll();go('workorders');note('global','WO '+(f(woResult,'wo_number')||'')+' assigned immediately to '+(f(tech,'name','business_name')||'the Solo technician')+' and registered in My Orders.','success');
   }catch(e){if(btn)btn.disabled=false;note('hiringNotice','Booking failed: '+(e.message||e),'error');}
