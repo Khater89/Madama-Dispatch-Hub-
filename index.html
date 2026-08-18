@@ -1347,6 +1347,12 @@ input:focus,select:focus,textarea:focus{border-color:#31d6c4!important;box-shado
 .search-source-meta{min-height:18px;margin:2px 0 10px}
 .search-results-scroll{max-height:900px;overflow:auto;padding-right:3px;scrollbar-gutter:stable}
 .search-results-scroll .tech:last-child{margin-bottom:0}
+.phone-jump-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 12px;padding:9px 10px;border:1px solid #2b4056;border-radius:11px;background:rgba(7,18,29,.62)}
+.phone-jump-bar input{flex:1;min-width:190px;max-width:360px;margin:0}
+.phone-jump-bar .phone-jump-label{font:800 10px/1 var(--mono);letter-spacing:.65px;color:#8fa6ba;white-space:nowrap}
+.phone-search-hit{animation:phoneSearchPulse 1.45s cubic-bezier(.18,.89,.32,1.28) 2!important;outline:2px solid #2dd4bf!important;outline-offset:2px;box-shadow:0 0 0 5px rgba(45,212,191,.12),0 16px 40px rgba(0,0,0,.34)!important}
+tr.phone-search-hit td{background:rgba(45,212,191,.14)!important}
+@keyframes phoneSearchPulse{0%,100%{transform:translateY(0) scale(1)}45%{transform:translateY(-2px) scale(1.012)}70%{transform:translateY(0) scale(1.004)}}
 .parallel-badge{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font:800 10px/1 var(--mono);letter-spacing:.35px;border:1px solid var(--line)}
 .parallel-badge.live{background:#3a2618;color:#fdba74;border-color:#6b3d1d}
 .parallel-badge.yelp{background:#3d1c22;color:#fda4af;border-color:#722b38}
@@ -1649,9 +1655,11 @@ body.search-workspace-screen #parallelSearchWorkspace.focus-yelp #yelpSearchPane
           <div class="search-source-controls"><button id="liveWorkspaceExpandBtn" class="workspace-expand-btn" type="button" onclick="toggleSearchWorkspaceExpand('live')" title="Expand Live Search vertically" aria-label="Expand Live Search"><svg viewBox="0 0 24 24"><path d="M5 14l7-7 7 7"/></svg></button><button id="findFbBtn" class="btn primary small" onclick="findClosestTech()">Run Live Search</button><button id="liveQuoRouteBtn" class="btn ghost small hidden" onclick="openQuoRoute('live')">Open Quo Queue</button></div>
         </div>
         <div id="liveSearchNotice" class="notice"></div>
+        <div class="phone-jump-bar"><span class="phone-jump-label">FIND PHONE</span><input id="livePhoneFind" type="tel" inputmode="tel" placeholder="Phone number or last digits" onkeydown="if(event.key==='Enter'){event.preventDefault();jumpToSearchPhone('live')}"/><button class="btn ghost small" type="button" onclick="jumpToSearchPhone('live')">Find in Live</button></div>
         <div id="liveClist" class="search-results-scroll"></div>
         <div id="liveQuoRoutePanel" class="quo-source-panel hidden">
           <div class="section"><div><b>Live Search — Manual Quo Queue</b><div class="muted" style="font-size:11px;margin-top:4px">Independent Live Search queue · only technicians within 60 miles are routed here.</div></div><div style="display:flex;gap:7px;flex-wrap:wrap"><button class="btn primary small" onclick="setSearchWorkspaceFocus('live')">Focus Queue</button><button class="btn ghost small" onclick="closeQuoRoute('live')">Close</button></div></div>
+          <div class="phone-jump-bar"><span class="phone-jump-label">FIND PHONE IN QUEUE</span><input id="liveQuoPhoneFind" type="tel" inputmode="tel" placeholder="Phone number or last digits" onkeydown="if(event.key==='Enter'){event.preventDefault();jumpToQuoPhone('live')}"/><button class="btn ghost small" type="button" onclick="jumpToQuoPhone('live')">Go to technician</button></div>
           <div class="grid g3"><div class="field"><label>Queue progress</label><input id="liveQuoRecipientCount" class="readonly" readonly></div><div class="field"><label>Current technician</label><input id="liveQuoCurrentTech" class="readonly" readonly></div><div class="field"><label>Distance from WO</label><input id="liveQuoCurrentMiles" class="readonly" readonly></div></div>
           <div class="field"><label>Short outreach message</label><textarea id="liveQuoMessage" style="min-height:145px"></textarea><div id="liveQuoSegments" class="mono muted" style="font-size:10px;margin-top:5px"></div></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 14px"><button class="btn primary small" onclick="copyCurrentQuoPhone('live')">Copy phone &amp; open Quo</button><button class="btn primary small" onclick="copyCurrentQuoMessage('live')">Copy message</button><button class="btn success small" onclick="setCurrentQuoStatus('live','sent',true)">Sent &amp; Next</button><button id="liveQuoFastHireBtn" class="btn fast-hire-btn small" onclick="openCurrentQuoFastHire('live')">Fast Hire</button><button id="liveQuoSoloBtn" class="btn success small" onclick="addCurrentQuoToSolo('live')">Add Solo</button><button id="liveQuoVendorBtn" class="btn ghost small" onclick="addCurrentQuoToVendor('live')">Add Vendor</button><button class="btn danger small" onclick="setCurrentQuoStatus('live','failed',true)">Failed &amp; Next</button><button class="btn ghost small" onclick="moveQuoQueue('live',-1)">Previous</button><button class="btn ghost small" onclick="moveQuoQueue('live',1)">Next</button></div>
@@ -1665,9 +1673,11 @@ body.search-workspace-screen #parallelSearchWorkspace.focus-yelp #yelpSearchPane
           <div class="search-source-controls"><button id="yelpWorkspaceExpandBtn" class="workspace-expand-btn" type="button" onclick="toggleSearchWorkspaceExpand('yelp')" title="Expand Yelp Search vertically" aria-label="Expand Yelp Search"><svg viewBox="0 0 24 24"><path d="M5 14l7-7 7 7"/></svg></button><button id="findYelpBtn" class="btn primary small" onclick="searchYelpFromWO()">Search Yelp</button><button id="yelpQuoRouteBtn" class="btn ghost small hidden" onclick="openQuoRoute('yelp')">Open Quo Queue</button></div>
         </div>
         <div id="yelpSearchNotice" class="notice"></div>
+        <div class="phone-jump-bar"><span class="phone-jump-label">FIND PHONE</span><input id="yelpPhoneFind" type="tel" inputmode="tel" placeholder="Phone number or last digits" onkeydown="if(event.key==='Enter'){event.preventDefault();jumpToSearchPhone('yelp')}"/><button class="btn ghost small" type="button" onclick="jumpToSearchPhone('yelp')">Find in Yelp</button></div>
         <div id="yelpClist" class="search-results-scroll"></div>
         <div id="yelpQuoRoutePanel" class="quo-source-panel hidden">
           <div class="section"><div><b>Yelp — Manual Quo Queue</b><div class="muted" style="font-size:11px;margin-top:4px">Independent Yelp queue · only technicians within 60 miles are routed here. Farther Yelp results remain saved in Search Memory.</div></div><div style="display:flex;gap:7px;flex-wrap:wrap"><button class="btn primary small" onclick="setSearchWorkspaceFocus('yelp')">Focus Queue</button><button class="btn ghost small" onclick="closeQuoRoute('yelp')">Close</button></div></div>
+          <div class="phone-jump-bar"><span class="phone-jump-label">FIND PHONE IN QUEUE</span><input id="yelpQuoPhoneFind" type="tel" inputmode="tel" placeholder="Phone number or last digits" onkeydown="if(event.key==='Enter'){event.preventDefault();jumpToQuoPhone('yelp')}"/><button class="btn ghost small" type="button" onclick="jumpToQuoPhone('yelp')">Go to technician</button></div>
           <div class="grid g3"><div class="field"><label>Queue progress</label><input id="yelpQuoRecipientCount" class="readonly" readonly></div><div class="field"><label>Current technician</label><input id="yelpQuoCurrentTech" class="readonly" readonly></div><div class="field"><label>Distance from WO</label><input id="yelpQuoCurrentMiles" class="readonly" readonly></div></div>
           <div class="field"><label>Short outreach message</label><textarea id="yelpQuoMessage" style="min-height:145px"></textarea><div id="yelpQuoSegments" class="mono muted" style="font-size:10px;margin-top:5px"></div></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 14px"><button class="btn primary small" onclick="copyCurrentQuoPhone('yelp')">Copy phone &amp; open Quo</button><button class="btn primary small" onclick="copyCurrentQuoMessage('yelp')">Copy message</button><button class="btn success small" onclick="setCurrentQuoStatus('yelp','sent',true)">Sent &amp; Next</button><button id="yelpQuoFastHireBtn" class="btn fast-hire-btn small" onclick="openCurrentQuoFastHire('yelp')">Fast Hire</button><button id="yelpQuoSoloBtn" class="btn success small" onclick="addCurrentQuoToSolo('yelp')">Add Solo</button><button id="yelpQuoVendorBtn" class="btn ghost small" onclick="addCurrentQuoToVendor('yelp')">Add Vendor</button><button class="btn danger small" onclick="setCurrentQuoStatus('yelp','failed',true)">Failed &amp; Next</button><button class="btn ghost small" onclick="moveQuoQueue('yelp',-1)">Previous</button><button class="btn ghost small" onclick="moveQuoQueue('yelp',1)">Next</button></div>
@@ -3282,6 +3292,59 @@ function toggleSearchWorkspaceExpand(source){
     panel?.scrollIntoView({behavior:'smooth',block:'start'});
   });
 }
+function phoneFindDigits(value){
+  let d=String(value||'').replace(/\D/g,'');
+  if(d.length>10&&d.startsWith('1'))d=d.slice(-10);
+  return d;
+}
+function phoneMatchesQuery(phone,query){
+  const p=phoneFindDigits(phone),q=phoneFindDigits(query);
+  if(!q||!p)return false;
+  return p===q||p.includes(q)||q.includes(p);
+}
+function flashPhoneSearchTarget(el){
+  if(!el)return;
+  el.classList.remove('phone-search-hit');
+  void el.offsetWidth;
+  el.classList.add('phone-search-hit');
+  setTimeout(()=>el?.classList.remove('phone-search-hit'),3000);
+}
+function jumpToSearchPhone(source){
+  source=source==='yelp'?'yelp':'live';
+  const input=$(source==='yelp'?'yelpPhoneFind':'livePhoneFind'),query=String(input?.value||'').trim();
+  const notice=source==='yelp'?'yelpSearchNotice':'liveSearchNotice';
+  if(!phoneFindDigits(query)){note(notice,'Enter a phone number or part of a phone number.','error');input?.focus();return;}
+  const rows=source==='yelp'?yelpSearchCandidates:liveSearchCandidates;
+  if(!rows.length){note(notice,'There are no '+(source==='yelp'?'Yelp':'Live Search')+' results to search yet.','error');return;}
+  let idx=rows.findIndex(t=>phoneFindDigits(f(t,'phone','normalized_phone'))===phoneFindDigits(query));
+  if(idx<0)idx=rows.findIndex(t=>phoneMatchesQuery(f(t,'phone','normalized_phone'),query));
+  if(idx<0){note(notice,'Phone not found in the current '+(source==='yelp'?'Yelp':'Live Search')+' results.','error');return;}
+  setSearchWorkspaceFocus(source);
+  const t=rows[idx];
+  note(notice,'Found '+tname(t)+' · '+String(f(t,'phone','normalized_phone')||'')+'.','success');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const el=$(source+'SearchPhoneRow'+idx);
+    el?.scrollIntoView({behavior:'smooth',block:'center'});
+    flashPhoneSearchTarget(el);
+  }));
+}
+function jumpToQuoPhone(source){
+  source=source==='yelp'?'yelp':'live';
+  const input=$(source==='yelp'?'yelpQuoPhoneFind':'liveQuoPhoneFind'),query=String(input?.value||'').trim();
+  const notice=quoPrefix(source)+'Notice',st=quoState(source);
+  if(!phoneFindDigits(query)){note(notice,'Enter a phone number or part of a phone number.','error');input?.focus();return;}
+  if(!st.rows.length){note(notice,'This queue is empty. Run the search and open the queue first.','error');return;}
+  let idx=st.rows.findIndex(x=>phoneFindDigits(x.phone)===phoneFindDigits(query));
+  if(idx<0)idx=st.rows.findIndex(x=>phoneMatchesQuery(x.phone,query));
+  if(idx<0){note(notice,'Phone not found in this '+(source==='yelp'?'Yelp':'Live')+' queue.','error');return;}
+  st.index=idx;saveQuoQueueLocal(source);updateQuoCount(source);setSearchWorkspaceFocus(source);
+  note(notice,'Queue moved to '+st.rows[idx].name+' · '+st.rows[idx].phone+'.','success');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const el=$(source+'QuoPhoneRow'+idx);
+    el?.scrollIntoView({behavior:'smooth',block:'center'});
+    flashPhoneSearchTarget(el);
+  }));
+}
 const quoQueues={
   live:{rows:[],index:0,dbReady:true},
   yelp:{rows:[],index:0,dbReady:true}
@@ -3301,7 +3364,7 @@ function updateQuoCount(source){
   if(miles)miles.value=current&&current.distance_miles!=null?Number(current.distance_miles).toFixed(1)+' mi':'—';
   const text=msg?.value||'',unicode=/[^\x00-\x7F]/.test(text),single=unicode?70:160,concat=unicode?67:153,segments=text.length<=single?1:Math.ceil(text.length/concat);
   if(segmentsEl)segmentsEl.textContent=text.length+' characters · estimated '+segments+' SMS segment'+(segments===1?'':'s')+' per technician';
-  if(recipients)recipients.innerHTML=rows.length?`<div class="tablewrap"><table style="min-width:700px"><thead><tr><th>#</th><th>Technician</th><th>Phone</th><th>Miles</th><th>Location</th><th>Status</th><th>Open</th></tr></thead><tbody>${rows.map((x,i)=>`<tr style="${i===st.index?'background:rgba(15,159,143,.10)':''}"><td>${i+1}</td><td><b>${esc(x.name)}</b></td><td class="mono">${esc(x.phone)}</td><td><span class="quo-distance">${x.distance_miles!=null?Number(x.distance_miles).toFixed(1)+' mi':'—'}</span></td><td>${esc(x.location||'—')}</td><td>${quoStatusBadge(x.status)}</td><td><button class="btn ghost small" onclick="selectQuoQueue('${source}',${i})">Select</button></td></tr>`).join('')}</tbody></table></div>`:emptyState('Queue is empty','Run this source search first.');
+  if(recipients)recipients.innerHTML=rows.length?`<div class="tablewrap"><table style="min-width:700px"><thead><tr><th>#</th><th>Technician</th><th>Phone</th><th>Miles</th><th>Location</th><th>Status</th><th>Open</th></tr></thead><tbody>${rows.map((x,i)=>`<tr id="${source}QuoPhoneRow${i}" data-phone="${esc(phoneFindDigits(x.phone))}" style="${i===st.index?'background:rgba(15,159,143,.10)':''}"><td>${i+1}</td><td><b>${esc(x.name)}</b></td><td class="mono">${esc(x.phone)}</td><td><span class="quo-distance">${x.distance_miles!=null?Number(x.distance_miles).toFixed(1)+' mi':'—'}</span></td><td>${esc(x.location||'—')}</td><td>${quoStatusBadge(x.status)}</td><td><button class="btn ghost small" onclick="selectQuoQueue('${source}',${i})">Select</button></td></tr>`).join('')}</tbody></table></div>`:emptyState('Queue is empty','Run this source search first.');
   const currentCand=currentQuoCandidate(source),fast=$(source==='yelp'?'yelpQuoFastHireBtn':'liveQuoFastHireBtn'),solo=$(source==='yelp'?'yelpQuoSoloBtn':'liveQuoSoloBtn'),vendorBtn=$(source==='yelp'?'yelpQuoVendorBtn':'liveQuoVendorBtn');
   if(fast)fast.disabled=!currentCand;if(solo){const inSolo=currentCand&&candidateInSolo(currentCand),inVendor=currentCand&&candidateInVendor(currentCand);solo.disabled=!currentCand||inSolo||inVendor||!candidatePhone10(currentCand);solo.textContent=inSolo?'✓ SOLO':inVendor?'VENDOR — NOT SOLO':'Add Solo';}if(vendorBtn){const inVendor=currentCand&&candidateInVendor(currentCand);vendorBtn.disabled=!currentCand||inVendor;vendorBtn.textContent=inVendor?'✓ VENDOR':'Add Vendor';}
 }
@@ -3546,12 +3609,13 @@ async function ensureWorkedWithOnBooking(cand,techId,vendorId,woId,data={}){
   const phone=candidatePhone10(cand)||ph(String(f(cand,'phone')||''));if(!phone)return null;const now=new Date().toISOString();let existing=(workedWithTechs||[]).find(x=>candidatePhone10(x)===phone)||null;try{if(!existing){const rows=await req('/worked_with_technicians?normalized_phone=eq.'+encodeURIComponent(phone)+'&limit=1');existing=Array.isArray(rows)?rows[0]:null;}const oldRaw=f(existing,'raw_data');const raw=oldRaw&&typeof oldRaw==='object'?{...oldRaw}:{};const alreadySame=String(raw.last_booked_wo_id||'')===String(woId||'');raw.last_booked_wo_id=woId||null;raw.last_booking_method=data.booking_method||'hiring';raw.vendor_id=vendorId||null;const payload={technician_id:techId||null,vendor_id:vendorId||null,name:tname(cand)||f(data,'technician_name')||null,business_name:f(cand,'business_name')||tname(cand)||null,phone:String(f(cand,'phone')||phone),normalized_phone:phone,primary_trade:String(f(cand,'primary_trade','trade')||hiringWOContext().trade||'')||null,city:String(f(cand,'city')||hiringWOContext().city||'')||null,state:soloStateCode(f(cand,'state')||hiringWOContext().state)||null,zip_code:cleanZip(f(cand,'zip_code')||hiringWOContext().zip_code)||null,assessment_fee:Number(data.assessment_fee||0)||0,payment_method:String(data.payment_method||f(cand,'payment_method')||'')||null,job_count:alreadySame?Math.max(1,Number(f(existing,'job_count')||1)):Math.max(1,Number(f(existing,'job_count')||0)+1),source_name:vendorId?'Vendor Hire':(f(cand,'source_platform')||'MDAMA Hire'),notes:'Automatically added after successful booking/hiring.',raw_data:raw,last_used_at:now,updated_at:now};Object.keys(payload).forEach(k=>{if(payload[k]===null||payload[k]==='')delete payload[k];});let saved;try{saved=existing?await req('/worked_with_technicians?id=eq.'+encodeURIComponent(f(existing,'id')),{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)}):await req('/worked_with_technicians',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});}catch(e){if(/vendor_id|schema cache/i.test(String(e?.message||e))){delete payload.vendor_id;saved=existing?await req('/worked_with_technicians?id=eq.'+encodeURIComponent(f(existing,'id')),{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)}):await req('/worked_with_technicians',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});}else throw e;}saved=Array.isArray(saved)?saved[0]:saved;if(saved){const i=workedWithTechs.findIndex(x=>String(f(x,'id'))===String(f(saved,'id')));if(i>=0)workedWithTechs[i]=saved;else workedWithTechs.unshift(saved);}if(vendorId){const vd=vendors.find(x=>String(f(x,'id'))===String(vendorId));if(vd){const assignedCount=(wos||[]).filter(w=>String(f(w,'assigned_vendor_id'))===String(vendorId)).length;const patch={jobs_count:Math.max(Number(f(vd,'jobs_count')||0),assignedCount,1),last_used_at:now,updated_at:now};try{await req('/vendors?id=eq.'+encodeURIComponent(vendorId),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(patch)});Object.assign(vd,patch);}catch{}}}return saved;}catch(e){console.warn('Automatic Worked With save failed after booking',e);return null;}
 }
 
-function searchCandidateCardHtml(t){
+function searchCandidateCardHtml(t,source='',index=0){
   const sm=candidateSourceMeta(t);
   const sourceBadge='<span style="display:inline-block;padding:2px 8px;border-radius:4px;background:'+sm.bg+';color:#fff;font-size:10px;font-weight:700;letter-spacing:.5px">'+sm.label+'</span>';
   const openLink=sourceLinkForCandidate(t),openLabel=sourceLinkLabel(openLink);
   const soloChip=soloProbabilityChip(t);
-  return `<div class="tech"><div style="margin-bottom:8px;display:flex;gap:7px;flex-wrap:wrap;align-items:center">${sourceBadge}${soloChip}</div>
+  const src=source==='yelp'?'yelp':'live',phoneKey=phoneFindDigits(f(t,'phone','normalized_phone'));
+  return `<div id="${src}SearchPhoneRow${index}" data-phone="${esc(phoneKey)}" class="tech"><div style="margin-bottom:8px;display:flex;gap:7px;flex-wrap:wrap;align-items:center">${sourceBadge}${soloChip}</div>
     <div class="techhead"><div><span class="rank-chip">#${t._rank||''}</span> <b>${esc(tname(t))}</b><div class="muted" style="margin-top:4px">${esc(f(t,'primary_trade','trade'))} · ${esc([f(t,'city'),f(t,'state')].filter(Boolean).join(', ')||'no location')}</div></div><div style="text-align:right">${t._dist!=null?`<span class="dist-chip">${esc(t._dist)} mi</span><br>`:''}${f(t,'rating')?`<span class="mono muted">★ ${esc(f(t,'rating'))}</span>`:''}</div></div>
     <div style="margin-top:8px">${badges(t)}</div>
     <div class="mono" style="margin-top:7px"><b>${esc(f(t,'phone','normalized_phone')||'No phone')}</b></div>
@@ -3571,7 +3635,7 @@ function searchCandidateCardHtml(t){
 function renderSearchPanel(source){
   const rows=source==='live'?liveSearchCandidates:yelpSearchCandidates;
   const list=$(source==='live'?'liveClist':'yelpClist');if(!list)return;
-  list.innerHTML=rows.length?rows.map(searchCandidateCardHtml).join(''):emptyState(source==='live'?'No Live Search results yet':'No Yelp results yet',source==='live'?'Run Live Search while Yelp can run independently.':'Search Yelp while Live Search can run independently.');
+  list.innerHTML=rows.length?rows.map((t,i)=>searchCandidateCardHtml(t,source,i)).join(''):emptyState(source==='live'?'No Live Search results yet':'No Yelp results yet',source==='live'?'Run Live Search while Yelp can run independently.':'Search Yelp while Live Search can run independently.');
   const qbtn=$(source==='live'?'liveQuoRouteBtn':'yelpQuoRouteBtn');if(qbtn)qbtn.classList.toggle('hidden',quoEligibleCandidates(source).length===0);
 }
 function renderParallelSearchPanels(){renderSearchPanel('live');renderSearchPanel('yelp');}
