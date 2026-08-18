@@ -1373,6 +1373,119 @@ input:focus,select:focus,textarea:focus{border-color:#31d6c4!important;box-shado
 .fast-hire-message-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 @media(max-width:900px){.wo-sticky-grid,.fast-hire-grid{grid-template-columns:1fr}.wo-sticky-brief{top:72px}}
 </style>
+
+<style id="mdama-step17-spring-focus-ui">
+/* Step 17 — collapsible WO brief + elastic focus/maximize workspace */
+:root{--spring-ui:cubic-bezier(.2,1.22,.35,1);--spring-soft:cubic-bezier(.22,.9,.28,1)}
+
+.wo-sticky-brief{
+  display:none;position:sticky;top:78px;z-index:24;
+  margin:-10px 0 16px;padding:0!important;
+  border:1px solid #2c4258!important;border-left:4px solid #2dd4bf!important;border-radius:13px!important;
+  background:rgba(10,19,30,.97)!important;box-shadow:0 12px 28px rgba(0,0,0,.28)!important;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  overflow:visible;transform-origin:top center;
+  transition:margin .42s var(--spring-ui),transform .42s var(--spring-ui),opacity .28s ease,border-color .25s ease,box-shadow .25s ease;
+}
+.wo-sticky-brief.show{display:block}
+.wo-sticky-shell{padding:12px 15px 13px;overflow:hidden;transition:padding .42s var(--spring-ui)}
+.wo-sticky-meta{margin:0 38px 6px 0!important;white-space:normal;overflow-wrap:anywhere}
+.wo-sticky-body{display:grid;grid-template-rows:1fr;opacity:1;transition:grid-template-rows .46s var(--spring-ui),opacity .24s ease,transform .46s var(--spring-ui);transform:translateY(0)}
+.wo-sticky-body>.wo-sticky-grid{min-height:0;overflow:hidden}
+.wo-sticky-grid{grid-template-columns:minmax(320px,.9fr) minmax(420px,1.5fr)!important;gap:18px!important}
+.wo-sticky-value{font-size:12px!important;line-height:1.5!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;word-break:normal!important;overflow-wrap:anywhere!important}
+.wo-sticky-address{font-weight:650;color:#eef5fb!important}
+.wo-sticky-toggle{
+  position:absolute;top:-14px;left:50%;transform:translateX(-50%);z-index:4;
+  width:38px;height:29px;border-radius:12px 12px 9px 9px;border:1px solid #3a5b70;background:#102333;color:#6eeee0;
+  display:grid;place-items:center;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.32);
+  transition:transform .38s var(--spring-ui),background .2s,border-color .2s,box-shadow .2s;
+}
+.wo-sticky-toggle:hover{background:#173839;border-color:#4fd8c9;box-shadow:0 10px 26px rgba(45,212,191,.16)}
+.wo-sticky-toggle svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transition:transform .42s var(--spring-ui)}
+.wo-sticky-brief.is-collapsed{margin-top:-7px!important;margin-bottom:10px!important}
+.wo-sticky-brief.is-collapsed .wo-sticky-shell{padding-top:9px;padding-bottom:7px}
+.wo-sticky-brief.is-collapsed .wo-sticky-body{grid-template-rows:0fr;opacity:0;transform:translateY(-10px)}
+.wo-sticky-brief.is-collapsed .wo-sticky-meta{margin-bottom:0!important}
+.wo-sticky-brief.is-collapsed .wo-sticky-toggle svg{transform:rotate(180deg)}
+
+.parallel-search-grid{
+  transition:grid-template-columns .52s var(--spring-ui),gap .45s var(--spring-ui),min-height .45s var(--spring-soft),margin .4s var(--spring-soft)!important;
+}
+.search-source-panel{
+  position:relative;transform-origin:center;overflow:visible;
+  transition:opacity .3s ease,transform .48s var(--spring-ui),padding .45s var(--spring-ui),border-radius .35s ease,box-shadow .35s ease,height .45s var(--spring-soft),min-height .45s var(--spring-soft)!important;
+}
+.parallel-search-grid.focus-live{grid-template-columns:minmax(0,1fr) 68px!important;gap:9px!important}
+.parallel-search-grid.focus-yelp{grid-template-columns:68px minmax(0,1fr)!important;gap:9px!important}
+.parallel-search-grid.focus-live #yelpSearchPanel,
+.parallel-search-grid.focus-yelp #liveSearchPanel{
+  padding:8px 5px!important;opacity:.94!important;min-width:0!important;overflow:hidden!important;align-self:stretch!important;height:100%;
+  background:linear-gradient(180deg,#101b29,#0a131f)!important;
+  border-color:#30455c!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.02)!important;
+}
+.parallel-search-grid.focus-live #yelpSearchPanel>*:not(.search-rail-restore),
+.parallel-search-grid.focus-yelp #liveSearchPanel>*:not(.search-rail-restore){display:none!important}
+.search-rail-restore{display:none;position:absolute;inset:6px;border:0;border-radius:11px;background:transparent;color:#9db0c3;cursor:pointer;align-items:center;justify-content:center;flex-direction:column;gap:9px;font:900 9px var(--mono);letter-spacing:.12em;transition:background .2s,color .2s,transform .36s var(--spring-ui)}
+.search-rail-restore svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round}
+.search-rail-restore span{writing-mode:vertical-rl;transform:rotate(180deg)}
+.parallel-search-grid.focus-live #yelpSearchPanel .yelp-rail-restore,
+.parallel-search-grid.focus-yelp #liveSearchPanel .live-rail-restore{display:flex!important}
+.search-rail-restore:hover{background:#142638;color:#72eadb;transform:scale(1.04)}
+
+.workspace-expand-btn{
+  width:37px;height:34px;display:grid;place-items:center;border:1px solid #345168;border-radius:10px;background:#0c1a28;color:#71e8da;cursor:pointer;
+  transition:transform .38s var(--spring-ui),background .2s,border-color .2s,box-shadow .2s;
+}
+.workspace-expand-btn:hover{transform:translateY(-2px) scale(1.04);background:#153331;border-color:#4fd5c7;box-shadow:0 8px 22px rgba(45,212,191,.12)}
+.workspace-expand-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transition:transform .45s var(--spring-ui)}
+.workspace-expand-btn.active{background:#123f39;border-color:#54e2d2;box-shadow:0 0 0 2px rgba(94,234,212,.08) inset}
+.workspace-expand-btn.active svg{transform:rotate(180deg)}
+
+#newwoInputGrid{
+  overflow:hidden;max-height:5200px;opacity:1;transform:translateY(0);margin-bottom:0;
+  transition:max-height .58s var(--spring-soft),opacity .25s ease,transform .55s var(--spring-ui),margin .48s var(--spring-soft)!important;
+}
+.parallel-search-toolbar{transition:margin .45s var(--spring-soft),transform .45s var(--spring-ui),padding .4s var(--spring-soft),opacity .25s ease}
+body.search-workspace-screen .wo-sticky-brief.show{height:0!important;min-height:0!important;margin:0!important;padding:0!important;border-width:0!important;opacity:0!important;transform:translateY(-34px) scaleY(.86);pointer-events:none;overflow:hidden!important}
+body.search-workspace-screen #newwoInputGrid{max-height:0!important;opacity:0!important;transform:translateY(-34px) scale(.985);margin:0!important;pointer-events:none}
+body.search-workspace-screen #newwo .parallel-search-toolbar{margin-top:2px!important;margin-bottom:5px;transform:translateY(-2px)}
+body.search-workspace-screen .top{padding-top:10px!important;padding-bottom:9px!important;margin-bottom:8px!important}
+body.search-workspace-screen .top .sub{display:none!important}
+body.search-workspace-screen #parallelSearchWorkspace{min-height:calc(100vh - 112px);align-items:stretch}
+body.search-workspace-screen #parallelSearchWorkspace .search-source-panel{min-height:calc(100vh - 125px);height:calc(100vh - 125px);overflow:auto}
+body.search-workspace-screen #parallelSearchWorkspace .search-results-scroll{max-height:none!important}
+body.search-workspace-screen #parallelSearchWorkspace.focus-live{grid-template-columns:minmax(0,1fr) 58px!important}
+body.search-workspace-screen #parallelSearchWorkspace.focus-yelp{grid-template-columns:58px minmax(0,1fr)!important}
+body.search-workspace-screen #parallelSearchWorkspace.focus-live #liveSearchPanel,
+body.search-workspace-screen #parallelSearchWorkspace.focus-yelp #yelpSearchPanel{box-shadow:0 18px 55px rgba(0,0,0,.28),0 0 0 1px rgba(94,234,212,.06) inset!important}
+
+@media(max-width:900px){
+  .wo-sticky-grid{grid-template-columns:1fr!important}
+  .parallel-search-grid.focus-live,.parallel-search-grid.focus-yelp{grid-template-columns:1fr!important}
+  .parallel-search-grid.focus-live #yelpSearchPanel,.parallel-search-grid.focus-yelp #liveSearchPanel{display:none!important}
+  body.search-workspace-screen #parallelSearchWorkspace.focus-live,body.search-workspace-screen #parallelSearchWorkspace.focus-yelp{grid-template-columns:1fr!important}
+  body.search-workspace-screen #parallelSearchWorkspace .search-source-panel{height:auto;min-height:calc(100vh - 110px)}
+}
+@media(prefers-reduced-motion:reduce){
+  .wo-sticky-brief,.wo-sticky-body,.wo-sticky-toggle,.wo-sticky-toggle svg,.parallel-search-grid,.search-source-panel,.workspace-expand-btn,.workspace-expand-btn svg,#newwoInputGrid,.parallel-search-toolbar{transition:none!important}
+}
+</style>
+
+
+<style id="mdama-step18-auto-search-safe-outline">
+.wo-sticky-shell{padding-bottom:16px!important}
+.wo-sticky-clientline{margin:0 0 10px;padding:8px 10px;border:1px solid rgba(94,234,212,.12);border-radius:9px;background:rgba(17,34,48,.58)}
+.wo-sticky-client{font-weight:800;font-size:12px;color:#f2f7fb;overflow-wrap:anywhere}
+.wo-sticky-outline{white-space:pre-line!important}
+.wo-sticky-toggle-top{top:-14px!important;bottom:auto!important}
+.wo-sticky-toggle-bottom{top:auto!important;bottom:-14px!important;border-radius:9px 9px 12px 12px!important}
+.wo-sticky-brief.is-collapsed .wo-sticky-toggle-top svg,.wo-sticky-brief.is-collapsed .wo-sticky-toggle-bottom svg{transform:rotate(180deg)}
+.wo-sticky-brief.is-collapsed .wo-sticky-toggle-bottom{bottom:-12px!important}
+.wo-sticky-brief.is-collapsed .wo-sticky-clientline{margin-bottom:0}
+@media(max-width:1100px){.wo-sticky-grid{grid-template-columns:1fr!important}}
+</style>
+
 </head>
 <body>
 <div class="orbs"><div class="orb a"></div><div class="orb b"></div><div class="orb c"></div></div>
@@ -1395,7 +1508,7 @@ input:focus,select:focus,textarea:focus{border-color:#31d6c4!important;box-shado
     <button data-v="import"><svg viewBox="0 0 24 24"><path d="M12 4v10"/><path d="M8 10l4 4 4-4"/><path d="M4 18h16"/></svg>Import CSV</button>
     <button data-v="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 6.6 19l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3 13.4H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 6.6l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 10 3.6V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.1 2.5"/></svg>Settings</button>
   </nav>
-  <div class="sidefoot"><b>v11.79</b> · OPERATIONS OS<br>Supabase + OpenAI + Maps</div>
+  <div class="sidefoot"><b>v11.80</b> · OPERATIONS OS<br>Supabase + OpenAI + Maps</div>
 </aside>
 
 <main class="main">
@@ -1405,11 +1518,25 @@ input:focus,select:focus,textarea:focus{border-color:#31d6c4!important;box-shado
   </div>
   <div id="global" class="notice"></div>
   <div id="woStickyBrief" class="wo-sticky-brief" aria-live="polite">
-    <div id="woStickyMeta" class="wo-sticky-meta">ACTIVE WO</div>
-    <div class="wo-sticky-grid">
-      <div><div class="wo-sticky-label">Address</div><div id="woStickyAddress" class="wo-sticky-value">—</div></div>
-      <div><div class="wo-sticky-label">Issue / Description</div><div id="woStickyProblem" class="wo-sticky-value">—</div></div>
+    <button id="woStickyToggle" type="button" class="wo-sticky-toggle wo-sticky-toggle-top" onclick="toggleWOStickyBrief()" aria-expanded="true" title="Collapse WO brief">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 14l7-7 7 7"/></svg>
+    </button>
+    <div class="wo-sticky-shell">
+      <div id="woStickyMeta" class="wo-sticky-meta">ACTIVE WO</div>
+      <div class="wo-sticky-body">
+        <div class="wo-sticky-clientline">
+          <div class="wo-sticky-label">Client / Store</div>
+          <div id="woStickyClient" class="wo-sticky-client">—</div>
+        </div>
+        <div class="wo-sticky-grid">
+          <div><div class="wo-sticky-label">Full Location</div><div id="woStickyAddress" class="wo-sticky-value wo-sticky-address">—</div></div>
+          <div><div class="wo-sticky-label">Technician Job Outline</div><div id="woStickyProblem" class="wo-sticky-value wo-sticky-outline">—</div></div>
+        </div>
+      </div>
     </div>
+    <button id="woStickyToggleBottom" type="button" class="wo-sticky-toggle wo-sticky-toggle-bottom" onclick="toggleWOStickyBrief()" aria-expanded="true" title="Collapse WO brief">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10l7 7 7-7"/></svg>
+    </button>
   </div>
 
   <!-- DASHBOARD -->
@@ -1428,7 +1555,7 @@ input:focus,select:focus,textarea:focus{border-color:#31d6c4!important;box-shado
 
   <!-- NEW WO -->
   <section id="newwo" class="view">
-    <div class="grid g2">
+    <div id="newwoInputGrid" class="grid g2">
       <div class="card">
         <div class="section"><h2>1. Paste the complete WO</h2><span class="hint">AI reads and prepares the dispatcher brief</span></div>
         <textarea id="raw" placeholder="Paste the complete Work Order here — all sections and labels…"></textarea>
@@ -1476,9 +1603,10 @@ input:focus,select:focus,textarea:focus{border-color:#31d6c4!important;box-shado
     </div>
     <div id="parallelSearchWorkspace" class="parallel-search-grid">
       <div id="liveSearchPanel" class="card search-source-panel live-panel">
+        <button class="search-rail-restore live-rail-restore" type="button" onclick="setSearchWorkspaceFocus('live')" title="Focus Live Search" aria-label="Focus Live Search"><svg viewBox="0 0 24 24"><path d="M14 5l-7 7 7 7"/></svg><span>LIVE</span></button>
         <div class="search-source-head">
           <div><div class="source-title"><span class="parallel-badge live">LIVE WEB</span><h2>Live Search</h2></div><div id="liveCinfo" class="hint search-source-meta">Ready to search the WO city + nearby cities.</div></div>
-          <div class="search-source-controls"><button id="findFbBtn" class="btn primary small" onclick="findClosestTech()">Run Live Search</button><button id="liveQuoRouteBtn" class="btn ghost small hidden" onclick="openQuoRoute('live')">Open Quo Queue</button></div>
+          <div class="search-source-controls"><button id="liveWorkspaceExpandBtn" class="workspace-expand-btn" type="button" onclick="toggleSearchWorkspaceExpand('live')" title="Expand Live Search vertically" aria-label="Expand Live Search"><svg viewBox="0 0 24 24"><path d="M5 14l7-7 7 7"/></svg></button><button id="findFbBtn" class="btn primary small" onclick="findClosestTech()">Run Live Search</button><button id="liveQuoRouteBtn" class="btn ghost small hidden" onclick="openQuoRoute('live')">Open Quo Queue</button></div>
         </div>
         <div id="liveSearchNotice" class="notice"></div>
         <div id="liveClist" class="search-results-scroll"></div>
@@ -1491,9 +1619,10 @@ input:focus,select:focus,textarea:focus{border-color:#31d6c4!important;box-shado
         </div>
       </div>
       <div id="yelpSearchPanel" class="card search-source-panel yelp-panel">
+        <button class="search-rail-restore yelp-rail-restore" type="button" onclick="setSearchWorkspaceFocus('yelp')" title="Focus Yelp Search" aria-label="Focus Yelp Search"><svg viewBox="0 0 24 24"><path d="M10 5l7 7-7 7"/></svg><span>YELP</span></button>
         <div class="search-source-head">
           <div><div class="source-title"><span class="parallel-badge yelp">YELP</span><h2>Yelp Search</h2></div><div id="yelpCinfo" class="hint search-source-meta">Ready to search Yelp Memory + Yelp Live.</div></div>
-          <div class="search-source-controls"><button id="findYelpBtn" class="btn primary small" onclick="searchYelpFromWO()">Search Yelp</button><button id="yelpQuoRouteBtn" class="btn ghost small hidden" onclick="openQuoRoute('yelp')">Open Quo Queue</button></div>
+          <div class="search-source-controls"><button id="yelpWorkspaceExpandBtn" class="workspace-expand-btn" type="button" onclick="toggleSearchWorkspaceExpand('yelp')" title="Expand Yelp Search vertically" aria-label="Expand Yelp Search"><svg viewBox="0 0 24 24"><path d="M5 14l7-7 7 7"/></svg></button><button id="findYelpBtn" class="btn primary small" onclick="searchYelpFromWO()">Search Yelp</button><button id="yelpQuoRouteBtn" class="btn ghost small hidden" onclick="openQuoRoute('yelp')">Open Quo Queue</button></div>
         </div>
         <div id="yelpSearchNotice" class="notice"></div>
         <div id="yelpClist" class="search-results-scroll"></div>
@@ -2172,21 +2301,32 @@ const TITLES = { dashboard:'Dashboard', newwo:'New Work Order', workorders:'My O
 const SUBS   = { dashboard:'Operations command center · active work, technicians and payments', newwo:'Paste once · review AI analysis · dispatch the right technician', workorders:'Booked work orders · current status · next action', workflow:'One stage at a time · arrival → diagnosis → quote → payment → completion', technicians:'Search, filter and reuse the technician network', solotech:'Fast dispatch directory · job details → call agreement → immediate assignment', vendors:'Saved vendor companies · vendor technicians · fast vendor booking', workedwith:'Previously hired resources · city matching · instant assignment', coverage:'Coverage strength by area and trade · Yelp discovery → verified network', import:'Bulk-load and maintain technician coverage', settings:'Integrations and dispatch system configuration' };
 let activeViewId='dashboard';
 function stickyWOContext(){
-  // Keep the floating WO brief only on New Work Order / search.
-  // The Workflow already shows the WO details in its own header, so the
-  // floating brief must disappear as soon as the dispatcher opens Workflow.
-  if(activeViewId==='newwo'){return {wo:v('won'),trade:v('trade'),address:v('fulladdress')||[v('street'),v('city'),v('state'),v('zip')].filter(Boolean).join(', '),problem:v('summary')||v('sow')||''};}
-  return null;
+  if(activeViewId!=='newwo')return null;
+  const a=window._lastAnalysis||{};
+  const clientParts=[v('clientname'),v('storename')].map(x=>String(x||'').trim()).filter(Boolean);
+  const seen=new Set(),client=clientParts.filter(x=>{const k=x.toLowerCase();if(seen.has(k))return false;seen.add(k);return true;}).join(' · ');
+  return {wo:v('won'),trade:v('trade'),client,address:v('fulladdress')||[v('street'),v('city'),v('state'),v('zip')].filter(Boolean).join(', '),problem:String(a.job_outline||a.summary||v('summary')||v('sow')||'').trim()};
 }
+let woStickyBriefCollapsed=false;
+function syncWOStickyToggle(){
+  const box=$('woStickyBrief');if(!box)return;
+  box.classList.toggle('is-collapsed',woStickyBriefCollapsed);
+  ['woStickyToggle','woStickyToggleBottom'].forEach(id=>{const btn=$(id);if(!btn)return;btn.setAttribute('aria-expanded',String(!woStickyBriefCollapsed));btn.title=woStickyBriefCollapsed?'Expand WO brief':'Collapse WO brief';});
+}
+function toggleWOStickyBrief(force){woStickyBriefCollapsed=typeof force==='boolean'?!force:!woStickyBriefCollapsed;syncWOStickyToggle();}
 function updateWOStickyBrief(){
-  const box=$('woStickyBrief');if(!box)return;const ctx=stickyWOContext(),use=Boolean(ctx&&(ctx.address||ctx.problem||ctx.wo));box.classList.toggle('show',use);
+  const box=$('woStickyBrief');if(!box)return;
+  const ctx=stickyWOContext(),use=Boolean(ctx&&(ctx.address||ctx.problem||ctx.wo||ctx.client));box.classList.toggle('show',use);
   if(!use)return;
   $('woStickyMeta').textContent=[ctx.wo?'WO '+ctx.wo:'ACTIVE WO',ctx.trade].filter(Boolean).join(' · ');
-  $('woStickyAddress').textContent=ctx.address||'Address not available yet';
-  $('woStickyProblem').textContent=ctx.problem||'Issue description not available yet';
+  if($('woStickyClient'))$('woStickyClient').textContent=ctx.client||'Client / store not available yet';
+  const fullAddress=String(ctx.address||'').trim();$('woStickyAddress').textContent=fullAddress||'Full location not available yet';$('woStickyAddress').title=fullAddress||'Full location not available yet';
+  $('woStickyProblem').textContent=ctx.problem||'Technician job outline not available yet';
+  syncWOStickyToggle();
 }
 function go(id){
   activeViewId=id;
+  if(id!=='newwo'&&searchWorkspaceExpanded){searchWorkspaceExpanded=null;syncSearchWorkspaceExpansion();}
   document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active', x.id===id));
   document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active', x.dataset.v===id));
   $('title').textContent = TITLES[id] || 'MDAMA Dispatch';
@@ -2631,7 +2771,7 @@ async function deleteLiveDbTech(id){if(!confirm('Remove this technician from Liv
 function renderLiveSearchDb(){const body=$('liveDbBody');if(!body)return;if(!liveSearchDbReady){body.innerHTML='<tr><td colspan="8">'+emptyState('Live Search DB is not installed','Run sql/23_live_search_db_v11_19.sql once.')+'</td></tr>';return;}body.innerHTML=liveSearchDbTechs.length?liveSearchDbTechs.map(t=>{const u=f(t,'source_url');return `<tr><td><b>${esc(tname(t))}</b></td><td class="mono">${esc(f(t,'phone','normalized_phone')||'—')}</td><td>${esc(f(t,'trade')||'—')}</td><td>${esc([f(t,'city'),f(t,'state')].filter(Boolean).join(', ')||'—')}</td><td>${esc(f(t,'platform')||'—')}</td><td>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">Open source ↗</a>`:'—'}</td><td>${esc(f(t,'created_at')?new Date(f(t,'created_at')).toLocaleDateString():'—')}</td><td><button class="btn primary small" onclick="useLiveDbTech('${esc(f(t,'id'))}')">Start Hiring</button> <button class="btn fast-hire-btn small" onclick="openFastHireLiveDb('${esc(f(t,'id'))}')">Fast Hire</button> <button class="btn danger small" onclick="deleteLiveDbTech('${esc(f(t,'id'))}')">Delete</button></td></tr>`;}).join(''):'<tr><td colspan="8">'+emptyState('Live Search DB is empty','Use ADD TO LIVE SEARCH DB on a live result.')+'</td></tr>';}
 
 /* ---- company-trained document classification + extraction ---- */
-const WO_LABELS=['Job','Commitment Date & Time','Commitment Date and Time','Commitment','Job Type','ExternalID','External ID','Ext. ID','Record Type','Alert Status','Special Handling','Region','TZ','Time Zone','Timezone','Customer Name','Client Name','Customer','WRID','Location Contact','Best Contact','Contact Number','Contact Phone','Best Contact Phone','Turf','Service Address','Full Address','Address','Reject','Summary','Scope of Work','SOW','Store','Store Name','Location Name','Store #','Store Number','Store No.','NTE','Status','Amount due','Incurred','Total cost','Payment method','WO','WO #','WO Number','Work Order'];
+const WO_LABELS=['Job','Commitment Date & Time','Commitment Date and Time','Commitment','Job Type','ExternalID','External ID','Ext. ID','Record Type','Alert Status','Special Handling','Special Instructions','Region','TZ','Time Zone','Timezone','Customer Name','Client Name','Customer','WRID','Location Contact','Best Contact','Contact Number','Contact Phone','Best Contact Phone','Turf','Service Address','Full Address','Address','Reject','Summary','Description','Reported Issue','Reported issue','Issue','Requested Scope','Scope of Work','SOW','Store','Store Name','Location Name','Store #','Store Number','Store No.','NTE','Status','Amount due','Incurred','Total cost','Payment method','WO','WO #','WO Number','Work Order'];
 const normLabel=x=>String(x||'').replace(/[:#]/g,'').replace(/\s+/g,' ').trim().toLowerCase();
 function labelValue(text,names){
   const targets=new Set(names.map(normLabel)),known=new Set(WO_LABELS.map(normLabel)),lines=String(text||'').split(/\r?\n/);
@@ -2705,35 +2845,59 @@ function validArabicExplanation(value){
 }
 async function ensureArabicExplanation(analysis,raw){
   const a=analysis&&typeof analysis==='object'?analysis:{};
-  if(validArabicExplanation(a.problem_explanation_ar))return a;
-  try{
-    const d=await fn('ai-assist',{task:'explain_arabic',raw_wo_text:raw,sow:a.sow||null,summary:a.summary||a.description||null});
-    if(validArabicExplanation(d.problem_explanation_ar))return {...a,problem_explanation_ar:d.problem_explanation_ar};
-  }catch{/* the local Arabic explanation below keeps the field from being blank */}
-  return {...a,problem_explanation_ar:conciseArabicExplanation(raw,a.sow,a.summary||a.description,a.trade)};
+  const source=String([a.description,a.sow,raw].filter(Boolean).join(' ')).toLowerCase();
+  let issue='الموقع أبلغ عن حالة تحتاج إلى فحص فني ميداني.';
+  let check='تحقق من الحالة كما وردت في الطلب، حدّد المعدة أو الجزء المتأثر، ووثّق القراءات والملاحظات والصور اللازمة.';
+  if(/hvac|air\s*condition|cool|heat|rtu|temperature/.test(source)){issue='الموقع أبلغ عن مشكلة مرتبطة بالتكييف أو درجات الحرارة أو تشغيل وحدة التكييف.';check='تحقق من حالة الوحدة أو الوحدات المذكورة، التشغيل الفعلي، إعدادات التحكم، درجات الحرارة وتدفق الهواء، ووثّق القراءات الفعلية.';}
+  else if(/motor|electric|breaker|outlet|power|wiring|light/.test(source)){issue='الموقع أبلغ عن مشكلة مرتبطة بمعدة أو دائرة كهربائية أو طريقة تشغيلها.';check='حدّد المعدة أو الدائرة المتأثرة، افحص الحالة الظاهرة والتغذية والقراءات المناسبة ضمن إجراءات السلامة، ووثّق النتائج.';}
+  else if(/clog|drain|toilet|urinal|backup|plumb|leak/.test(source)){issue='الموقع أبلغ عن مشكلة سباكة أو تصريف تحتاج إلى تحديد موضعها ونطاقها.';check='تحقق من النقاط المتأثرة ومسار التصريف أو مصدر المياه حسب الحالة، ووثّق ما يظهر فعلياً قبل اقتراح أي إصلاح.';}
+  return {...a,problem_explanation_ar:`المشكلة المبلغ عنها:\n${issue}\n\nنطاق الفحص:\n${check}\n\nالمطلوب من الفني:\nإبلاغنا بالنتائج الفعلية والتشخيص بعد الفحص وخطة الإصلاح والمواد أو المعدات المطلوبة والتكلفة قبل بدء العمل.\n\nحدود التحليل:\nلا يفترض النظام سبب العطل أو القطعة التالفة من نص الطلب. السبب النهائي يحدده الفني في الموقع بالمعاينة والقياسات.`};
 }
-function technicianFacingSummary(ctx={}){
+function cleanReportedIssue(value,max=620){
+  let text=String(value||'').replace(/\r/g,' ').replace(/\s+/g,' ').trim();if(!text)return '';
+  text=text.replace(/^(?:technician\s*:\s*)?(?:this is a commercial [^.]+ service call\.\s*)?/i,'').replace(/^(?:reported issue|issue|description|summary)\s*[:\-]\s*/i,'').trim();
+  const stop=/\b(?:please inspect|please dispatch|requested scope\s*:|special instructions?\s*:|vendor response|technicians?,\s*please|do not perform repair|do not start repair|before starting any repair)\b/i;
+  const m=text.match(stop);if(m&&m.index>35)text=text.slice(0,m.index).trim();
+  text=text.replace(/\b(?:best contact|best contact phone|have you already tried|requested by)\s*:[\s\S]*$/i,'').trim();
+  return compactOutreachPiece(text,max);
+}
+function reportedIssueFromRaw(raw,a={}){
+  const direct=multilineValue(raw,['Reported Issue','Reported issue','Issue','Description','Summary'])||labelValue(raw,['Reported Issue','Reported issue','Issue','Description','Summary']);
+  return cleanReportedIssue(direct||a.description||a.source_summary||a.summary||a.sow||'',620);
+}
+function serviceAreaLabel(trade,issue=''){
+  const t=String(trade||'').toLowerCase(),x=String(issue||'').toLowerCase();
+  if(t.includes('hvac'))return /heat|hot|cool|temperature|rtu|air/.test(x)?'HVAC cooling / comfort operation':'HVAC equipment operation';
+  if(t.includes('elect'))return /motor|fan|noise|rough/.test(x)?'electrical equipment / motor operation':'electrical power / equipment operation';
+  if(t.includes('plumb'))return /clog|backup|drain|toilet|urinal/.test(x)?'drainage / plumbing operation':'plumbing system operation';
+  if(t.includes('appliance'))return 'commercial appliance operation';
+  if(t.includes('lock'))return 'lock / access hardware operation';
+  if(t.includes('glass'))return 'glass / glazing condition';
+  return (String(trade||'service')+' system / equipment').trim();
+}
+function noGuessJobOutline(ctx={}){
   const trade=String(ctx.trade||'service').trim()||'service';
-  const rawIssue=ctx.description||ctx.source_summary||ctx.summary||ctx.sow||'';
-  const issue=compactOutreachPiece(rawIssue,420)||'The site reported a service issue that requires inspection and troubleshooting.';
-  const scope=compactOutreachPiece(ctx.sow,360);
-  const special=compactOutreachPiece(ctx.special_instructions||ctx.special,260);
-  const parts=[
-    `Technician: this is a commercial ${trade} service call.`,
-    `Reported issue: ${issue}`,
+  const issue=cleanReportedIssue(ctx.description||ctx.source_summary||ctx.summary||ctx.sow,620)||'The site reported a service condition that needs onsite verification.';
+  const scope=compactOutreachPiece(ctx.sow,360),special=compactOutreachPiece(ctx.special_instructions||ctx.special,300);
+  return [
+    `Reported condition: ${issue}`,
+    `Service area: ${serviceAreaLabel(trade,issue)}.`,
+    'Onsite objective: Verify the reported condition, identify the affected equipment/component, and document factual observations, readings, model/serial information, and photos when applicable.',
     scope&&scope.toLowerCase()!==issue.toLowerCase()?`Requested scope: ${scope}`:'',
-    'Please inspect and troubleshoot the reported condition, identify the actual cause, and call us with your diagnosis, recommended repair plan, any parts/materials or equipment needed, and your total estimate before starting any repair.',
-    special?`Special instructions: ${special}`:'',
-    'Do not perform repair work or discuss pricing with the site until approval is provided.'
-  ].filter(Boolean);
-  return parts.join('\n\n').slice(0,1800);
+    special?`Special instruction: ${special}`:'',
+    'Callback required before repair: Provide the actual diagnosis, recommended repair plan, parts/materials/equipment needed, and total estimate.',
+    'Analysis boundary: No root cause or failed part is assumed from the WO. The technician must confirm the cause onsite before any repair is approved.',
+    'Approval rule: Do not start repair work or discuss pricing with the site before approval.'
+  ].filter(Boolean).join('\n').slice(0,1900);
 }
+function technicianFacingSummary(ctx={}){return noGuessJobOutline(ctx);}
 function applyTechnicianFacingSummary(a,raw){
   if(!a||typeof a!=='object')return a;
-  const original=String(a.description||labelValue(raw,['Summary','Description'])||a.summary||a.sow||'').trim();
-  a.description=original||a.description||'';
-  a.summary=technicianFacingSummary({trade:a.trade,description:original,sow:a.sow,special_instructions:a.special_instructions});
-  if(a.dispatch_brief&&typeof a.dispatch_brief==='object')a.dispatch_brief.issue_summary=a.summary;
+  const issue=reportedIssueFromRaw(raw,a);
+  a.description=issue||cleanReportedIssue(a.description||a.sow||'',620);
+  a.job_outline=noGuessJobOutline({trade:a.trade,description:a.description,sow:a.sow,special_instructions:a.special_instructions});
+  a.summary=a.job_outline;
+  if(a.dispatch_brief&&typeof a.dispatch_brief==='object')a.dispatch_brief.issue_summary=a.job_outline;
   return a;
 }
 function localAnalyze(s){
@@ -2757,7 +2921,7 @@ function localAnalyze(s){
   if(tr==='HVAC'||tr==='Appliance Repair'){requiredOnHand.push('Ladder');}
   if(tr==='Electrical'&&/light|ballast/i.test(s)){requiredOnHand.push('Ladder');}
   if(tr==='Plumber'&&/overflow|backing up|clog/i.test(s)){requiredOnHand.push('100 ft+ snake or hydrojet');}
-  const sourceSummary=labelValue(s,['Summary'])||labelValue(s,['Description'])||sow;
+  const sourceSummary=cleanReportedIssue(multilineValue(s,['Reported Issue','Reported issue','Issue','Description','Summary'])||labelValue(s,['Reported Issue','Reported issue','Issue','Description','Summary'])||sow,620);
   const techSummary=technicianFacingSummary({trade:tr,description:sourceSummary,sow,special_instructions:labelValue(s,['Special Instructions','Special Handling'])});
   const dispatch_brief={issue_summary:techSummary,recommended_trade:tr,hiring_questions:['Can you handle this commercial repair?','Do you provide a free estimate?','What is your distance and ETA?','What is your assessment fee and payment method?'],required_on_hand:requiredOnHand,required_evidence:requiredEvidence,dispatch_notes:['Do not reveal the complete address until Hiring requirements are accepted.','No repair and no onsite price discussion before approval.']};
   const summary=techSummary;
@@ -2815,12 +2979,13 @@ async function analyze(){
       try{
         d=await fn('ai-assist',{task:'analyze',raw_wo_text:raw});
         if(d?.error)throw new Error(d.error);
-        a=await ensureArabicExplanation(d.analysis||d,raw);
+        a=d.analysis||d;
         usedAI=d?.source==='openai';
       }catch(aiErr){
         a=localAnalyze(raw);
         d={source:'local',fallback_reason:'client_fallback',ai_error:String(aiErr?.message||aiErr)};
       }
+      a=await ensureArabicExplanation(a,raw);
       applyTechnicianFacingSummary(a,raw);
       const manualNte=v('nte');
       fillFields(a); if(!editingWoId)$('nte').value=manualNte;
@@ -2904,7 +3069,7 @@ async function continuePastedPayment(){
 function resetWOForm(){
   editingWoId=null;currentWO=null;window._lastAnalysis={};pendingPaymentAnalysis=null;lastAnalyzedRaw='';
   ['raw','won','externalid','jobtype','recordtype','alertstatus','commitment','specialhandling','clientname','nte','storename','storenumber','trade','fulladdress','street','city','state','zip','turf','wrid','requester','bcontact','bphone','locationcontact','nocphone','sow','summary','special','arabicproblem','sched'].forEach(id=>{if($(id))$(id).value='';});
-  $('dtype').value='work_order';$('prio').value='normal';$('etacode').value='';$('ftag').value='New';$('cancelEditBtn').classList.add('hidden');$('candidates').style.display='none';liveSearchCandidates=[];yelpSearchCandidates=[];setSearchWorkspaceFocus('split');renderParallelSearchPanels();renderDispatchBrief({});clr('wonotice');clr('liveSearchNotice');clr('yelpSearchNotice');etaChoiceChanged();documentTypeChanged();updateWOStickyBrief();
+  $('dtype').value='work_order';$('prio').value='normal';$('etacode').value='';$('ftag').value='New';$('cancelEditBtn').classList.add('hidden');$('candidates').style.display='none';liveSearchCandidates=[];yelpSearchCandidates=[];searchWorkspaceExpanded=null;syncSearchWorkspaceExpansion();setSearchWorkspaceFocus('split');renderParallelSearchPanels();renderDispatchBrief({});clr('wonotice');clr('liveSearchNotice');clr('yelpSearchNotice');etaChoiceChanged();documentTypeChanged();updateWOStickyBrief();
 }
 function startNewWO(){resetWOForm();go('newwo');}
 function editWO(id){
@@ -3046,10 +3211,36 @@ async function resolveCandidateDistancesFromWO(rows,originZip){
   }catch{return rows;}
 }
 let searchWorkspaceFocus='split';
+let searchWorkspaceExpanded=null;
+let searchWorkspaceRestoreY=0;
+function syncSearchWorkspaceExpansion(){
+  const expanded=searchWorkspaceExpanded==='live'||searchWorkspaceExpanded==='yelp'?searchWorkspaceExpanded:null;
+  document.body.classList.toggle('search-workspace-screen',Boolean(expanded));
+  [['liveWorkspaceExpandBtn','live'],['yelpWorkspaceExpandBtn','yelp']].forEach(([id,src])=>{
+    const b=$(id);if(!b)return;const on=expanded===src;b.classList.toggle('active',on);b.setAttribute('aria-expanded',String(on));b.title=on?'Restore normal layout':('Expand '+(src==='yelp'?'Yelp':'Live')+' Search vertically');
+  });
+}
 function setSearchWorkspaceFocus(mode='split'){
   mode=mode==='live'||mode==='yelp'?mode:'split';searchWorkspaceFocus=mode;
   const ws=$('parallelSearchWorkspace');if(!ws)return;ws.classList.remove('focus-live','focus-yelp');if(mode!=='split')ws.classList.add('focus-'+mode);
   [['focusLiveBtn','live'],['focusSplitBtn','split'],['focusYelpBtn','yelp']].forEach(([id,m])=>$(id)?.classList.toggle('active',mode===m));
+  if(mode==='split'&&searchWorkspaceExpanded){searchWorkspaceExpanded=null;syncSearchWorkspaceExpansion();}
+  else if(searchWorkspaceExpanded&&mode!=='split'&&searchWorkspaceExpanded!==mode){searchWorkspaceExpanded=mode;syncSearchWorkspaceExpansion();}
+}
+function toggleSearchWorkspaceExpand(source){
+  source=source==='yelp'?'yelp':'live';
+  if(searchWorkspaceExpanded===source){
+    searchWorkspaceExpanded=null;syncSearchWorkspaceExpansion();
+    requestAnimationFrame(()=>window.scrollTo({top:searchWorkspaceRestoreY,behavior:'smooth'}));
+    return;
+  }
+  searchWorkspaceRestoreY=window.scrollY;
+  setSearchWorkspaceFocus(source);
+  searchWorkspaceExpanded=source;syncSearchWorkspaceExpansion();
+  requestAnimationFrame(()=>{
+    const panel=$(source==='yelp'?'yelpSearchPanel':'liveSearchPanel');
+    panel?.scrollIntoView({behavior:'smooth',block:'start'});
+  });
 }
 const quoQueues={
   live:{rows:[],index:0,dbReady:true},
@@ -4464,7 +4655,7 @@ function yelpCandidateFromBusiness(b,i,trade,city,state,memory=false){
     _source_kind:'yelp',
     _yelp_memory:Boolean(memory),
     _rank:i+1,
-    _dist:memory?null:b.distance_miles,
+    _dist:Number.isFinite(Number(b.distance_miles))?Number(b.distance_miles):null,
     _yelp_categories:(Array.isArray(b.categories)?b.categories.join(' / '):String(b.categories||'')),
     _reason:memory
       ? ('Saved from a previous Yelp search'+(b.search_count?(' · seen '+b.search_count+' times'):'')+(b.last_seen_at?(' · last seen '+new Date(b.last_seen_at).toLocaleDateString()):''))
@@ -4493,7 +4684,15 @@ async function searchYelpFromWO(){
     if(btn){btn.disabled=true;btn.innerHTML='<span class="mono">Searching…</span>';}
     note('yelpSearchNotice','Checking Yelp Search Memory within '+SEARCH_DISPLAY_RADIUS_MILES+' miles of '+(zip||[city,state].filter(Boolean).join(', '))+'…','info');
     try{
-      const mem=await fn('yelp-search',{mode:'memory',trade,zip_code:zip,city,state,limit:50});
+      let origin=null;
+      try{origin=zip.length===5?await zipCoordinates(zip):await geocodeLiveTargetCity(city,state,zip);}catch{}
+      let mem=null;
+      try{
+        mem=await fn('yelp-search',{mode:'memory_radius',trade,zip_code:zip,city,state,origin_lat:origin?.lat??null,origin_lng:origin?.lng??null,radius_miles:SEARCH_DISPLAY_RADIUS_MILES,limit:250});
+        if(!['memory_radius','memory'].includes(String(mem?.mode||'')))throw new Error('Older Yelp Memory function detected.');
+      }catch(radiusErr){
+        mem=await fn('yelp-search',{mode:'memory',trade,zip_code:zip,city,state,limit:100});
+      }
       const memRows=Array.isArray(mem?.businesses)?mem.businesses:[];
       memoryAll=await resolveCandidateDistancesFromWO(memRows.map((b,i)=>yelpCandidateFromBusiness(b,i,trade,city,state,true)),zip);
       const memoryVisible=memoryAll.filter(withinSearchDisplayRadius);
@@ -4529,9 +4728,10 @@ async function searchYelpFromWO(){
     renderSearchPanel('yelp');
     $('yelpCinfo').textContent=liveVisible.length+' live ≤ '+SEARCH_DISPLAY_RADIUS_MILES+' mi'+(memoryOnly?' + '+memoryOnly+' memory-only':'')+(liveFar?' · '+liveFar+' farther hidden/saved':'')+(liveUnknown?' · '+liveUnknown+' distance unknown hidden':'')+(d?.subtrade?' · '+String(d.subtrade):'');
     const saved=Number(d?.saved_count||0);
-    if(yelpSearchCandidates.length)note('yelpSearchNotice','Yelp ready: '+yelpSearchCandidates.length+' visible within '+SEARCH_DISPLAY_RADIUS_MILES+' mi · '+saved+' of '+rows.length+' returned results saved/updated in Memory'+(liveFar?' · '+liveFar+' farther than '+SEARCH_DISPLAY_RADIUS_MILES+' mi kept in DB':'')+'.','success');
+    if(!rows.length&&memoryVisible.length)note('yelpSearchNotice','Yelp Live returned 0 results. Showing '+memoryVisible.length+' saved Yelp Memory result(s) within '+SEARCH_DISPLAY_RADIUS_MILES+' miles for this Trade.','success');
+    else if(yelpSearchCandidates.length)note('yelpSearchNotice','Yelp ready: '+yelpSearchCandidates.length+' visible within '+SEARCH_DISPLAY_RADIUS_MILES+' mi · '+saved+' of '+rows.length+' returned results saved/updated in Memory'+(liveFar?' · '+liveFar+' farther than '+SEARCH_DISPLAY_RADIUS_MILES+' mi kept in DB':'')+'.','success');
     else if(rows.length)note('yelpSearchNotice','Yelp returned '+rows.length+' result(s), but none with a usable distance were within '+SEARCH_DISPLAY_RADIUS_MILES+' miles. All returned results were still sent to Yelp Search Memory.','info');
-    else note('yelpSearchNotice','No Yelp businesses found for this Trade and location.','info');
+    else note('yelpSearchNotice','No Yelp Live or saved Yelp Memory businesses were found within '+SEARCH_DISPLAY_RADIUS_MILES+' miles for this Trade.','info');
   }catch(e){note('yelpSearchNotice','Yelp Search failed: '+String(e?.message||e),'error');$('yelpCinfo').textContent='Search failed';}
   finally{if(btn){btn.disabled=false;btn.innerHTML=orig;}}
 }
@@ -5776,7 +5976,17 @@ async function syncCompanyMap(){
 // Load both sources whenever Solo Tech is opened.
 const _origGo=typeof go==='function'?go:null;
 window.go=function(id){if(_origGo)_origGo(id);if(id==='solotech')refreshSoloDirectory(false);};
-$('raw').addEventListener('paste',()=>setTimeout(()=>{lastAnalyzedRaw='';updateSoloSearchButton();analyze();},80));
+let autoPasteSearchToken=0;
+async function analyzeAndAutoSearchPastedWO(){
+  const token=++autoPasteSearchToken;
+  lastAnalyzedRaw='';window._lastAnalysis={};liveSearchCandidates=[];yelpSearchCandidates=[];renderParallelSearchPanels();updateSoloSearchButton();
+  const a=await analyze();
+  if(token!==autoPasteSearchToken||!a||v('dtype')!=='work_order')return;
+  if(!v('trade')||(!cleanZip(v('zip'))&&!v('city'))){note('wonotice','WO analyzed. Auto Search is waiting for a Trade and WO location.','info');return;}
+  note('wonotice','WO analyzed. Live Search + Yelp Search started automatically in parallel.','success');
+  await runParallelSearches();
+}
+$('raw').addEventListener('paste',()=>setTimeout(analyzeAndAutoSearchPastedWO,120));
 $('raw').addEventListener('input',()=>{if(v('raw')!==lastAnalyzedRaw)window._lastAnalysis={};updateSoloSearchButton();});
 updateSoloSearchButton();
 
