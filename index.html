@@ -1250,6 +1250,8 @@ input:focus,select:focus,textarea:focus{border-color:#31d6c4!important;box-shado
   .parallel-search-grid.focus-live,.parallel-search-grid.focus-yelp{grid-template-columns:1fr}
   .parallel-search-grid.focus-live #yelpSearchPanel,.parallel-search-grid.focus-yelp #liveSearchPanel{display:none!important}
 }
+
+#candidates{display:none!important;}
 </style>
 <!-- MDAMA v11.0 Operations OS UX/UI Redesign — workflow logic preserved -->
 <style>
@@ -3581,6 +3583,9 @@ async function runParallelSearches(){
 }
 
 function showCandidates(){
+  const legacyPanel=$('candidates');
+  if(legacyPanel) legacyPanel.style.display='none';
+  return;
   const liveMode=candidates.length>0&&candidates.every(t=>t._source_kind==='live_web');
   const yelpMode=candidates.length>0&&candidates.every(t=>t._source_kind==='yelp');
   const searchQueueMode=liveMode||yelpMode;
