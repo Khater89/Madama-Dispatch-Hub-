@@ -1789,7 +1789,7 @@ body.search-workspace-screen #parallelSearchWorkspace.focus-yelp #yelpSearchPane
           <div><label>Map layer</label><select id="sflayer" onchange="resetSoloPage();scheduleSoloZipSearch()"><option value="">All layers</option></select></div>
           <div><label>Phone</label><select id="sfphone" onchange="resetSoloPage();scheduleSoloZipSearch()"><option value="">All</option><option value="yes">Has phone</option><option value="no">No phone</option></select></div>
           <div><label>License</label><select id="sflicensed" onchange="resetSoloPage();scheduleSoloZipSearch()"><option value="">All</option><option value="yes">Licensed</option><option value="no">Not licensed</option></select></div>
-          <div><label>Search</label><input id="sfs" oninput="resetSoloPage();scheduleSoloZipSearch()" placeholder="Name, phone, city, notes…"></div>
+          <div><label>Search</label><input id="sfs" oninput="resetSoloPage();scheduleSoloZipSearch()" placeholder="Search name or phone…"></div>
           <div><label>ZIP proximity</label><input id="sfzip" inputmode="numeric" maxlength="5" oninput="resetSoloPage();scheduleSoloZipSearch()" placeholder="e.g. 92260"></div>
         </div>
         <div id="soloNotice" class="notice"></div>
@@ -2974,10 +2974,40 @@ function conciseTechnicianIssueSentence(value=''){
   if(!/[.!?…]$/.test(text))text+='.';
   return text;
 }
+function spokenTechnicianIssueSentence(value='',trade=''){
+  let issue=conciseTechnicianIssueSentence(value).replace(/[.!?…]+$/,'').trim();
+  if(!issue)return 'The job is for a reported service issue that needs onsite inspection.';
+
+  issue=issue
+    .replace(/^(?:The site (?:reported|reports|is reporting)(?: that)?|Site (?:reported|reports)(?: that)?|The reported (?:issue|condition) is)\s*[:,-]?\s*/i,'')
+    .replace(/^(?:Clog\s+)?Toilet\/Urinal\/Sink\/Drain\s*/i,'')
+    .replace(/\s+/g,' ')
+    .trim();
+
+  if(/^(?:The|This) job is for\b/i.test(issue))return issue.replace(/[.!?…]*$/,'.');
+
+  const lower=issue.charAt(0).toLowerCase()+issue.slice(1);
+
+  // Common dispatch phrasing: make the sentence sound like something a dispatcher says on the phone.
+  if(/(?:sewer|drain)/i.test(issue)&&/clog|block/i.test(issue)&&/plunger/i.test(issue)){
+    const target=/toilet/i.test(issue)&&!/(?:sewer|drain line)/i.test(issue)?'clogged toilet':'clogged sewer/drain line';
+    return `The job is for a ${target}, and they already tried using a plunger several times but it didn’t clear.`;
+  }
+  if(/parking lot/i.test(issue)&&/restrip|striping|stripe/i.test(issue)){
+    return 'The job is for parking lot lines that need restriping.';
+  }
+  const noise=issue.match(/^(.+?)\s+is\s+(?:making|producing)\s+(?:a\s+)?(loud|unusual|strange)\s+noise/i);
+  if(noise)return `The job is for ${noise[1].trim()} that is making a ${noise[2].toLowerCase()} noise.`;
+
+  const labels={Plumber:'plumbing',Electrical:'electrical',HVAC:'HVAC',Handyman:'handyman',Locksmith:'locksmith','Glass Repair':'glass','Power Washing':'power-washing',Landscaping:'landscaping','Snow Removal':'snow-removal','Junk Removal':'junk-removal','Appliance Repair':'appliance'};
+  const area=labels[String(trade||'').trim()]||String(trade||'service').trim()||'service';
+  const article=/^[aeiou]/i.test(area)?'an':'a';
+  return `The job is for ${article} ${area} issue where ${lower}.`;
+}
 function noGuessJobOutline(ctx={}){
   // AI/local analysis summary gets priority. Description is only a fallback.
   const source=ctx.analysis_summary||ctx.summary||ctx.problem_summary||ctx.issue_summary||ctx.description||ctx.source_summary||ctx.sow||'';
-  return conciseTechnicianIssueSentence(cleanReportedIssue(source,520)||source);
+  return spokenTechnicianIssueSentence(cleanReportedIssue(source,520)||source,ctx.trade);
 }
 function technicianFacingSummary(ctx={}){return noGuessJobOutline(ctx);}
 function applyTechnicianFacingSummary(a,raw){
@@ -3467,12 +3497,44 @@ function updateQuoCount(source){
     return `<tr id="${source}QuoPhoneRow${i}" class="${classes}" tabindex="0" role="button" aria-current="${currentRow?'true':'false'}" data-phone="${esc(phoneFindDigits(x.phone))}" onclick="selectQuoQueue('${source}',${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectQuoQueue('${source}',${i})}"><td>${i+1}</td><td><b>${esc(x.name)}</b>${chips?`<div>${chips}</div>`:''}</td><td class="mono">${esc(x.phone)}</td><td><span class="quo-distance">${x.distance_miles!=null?Number(x.distance_miles).toFixed(1)+' mi':'—'}</span></td><td>${esc(x.location||'—')}</td><td>${quoStatusBadge(x.status)}</td></tr>`;
   }).join('')}</tbody></table></div>`:emptyState('Queue is empty','Run this source search first.');
   const currentCand=currentQuoCandidate(source),fast=$(source==='yelp'?'yelpQuoFastHireBtn':'liveQuoFastHireBtn'),solo=$(source==='yelp'?'yelpQuoSoloBtn':'liveQuoSoloBtn'),vendorBtn=$(source==='yelp'?'yelpQuoVendorBtn':'liveQuoVendorBtn');
-  if(fast)fast.disabled=!currentCand;if(solo){const inSolo=currentCand&&candidateInSolo(currentCand),inVendor=currentCand&&candidateInVendor(currentCand);solo.disabled=!currentCand||inSolo||inVendor||!candidatePhone10(currentCand);solo.textContent=inSolo?'✓ SOLO':inVendor?'VENDOR — NOT SOLO':'Add Solo';}if(vendorBtn){const inVendor=currentCand&&candidateInVendor(currentCand);vendorBtn.disabled=!currentCand||inVendor;vendorBtn.textContent=inVendor?'✓ VENDOR':'Add Vendor';}
+  if(fast)fast.disabled=!currentCand;if(solo){const inSolo=currentCand&&candidateInSolo(currentCand),inVendor=currentCand&&candidateInVendor(currentCand);solo.disabled=!currentCand||inSolo||inVendor||!candidatePhone10(currentCand);solo.textContent=inSolo?'✓ SAVED SOLO':inVendor?'VENDOR — NOT SOLO':'Add Solo';}if(vendorBtn){const inVendor=currentCand&&candidateInVendor(currentCand);vendorBtn.disabled=!currentCand||inVendor;vendorBtn.textContent=inVendor?'✓ VENDOR':'Add Vendor';}
 }
 function selectQuoQueue(source,index){const st=quoState(source);st.index=Math.min(Math.max(0,index),Math.max(0,st.rows.length-1));saveQuoQueueLocal(source);updateQuoCount(source);setSearchWorkspaceFocus(source);scrollCurrentQuoRow(source);}
-function currentQuoCandidate(source){const st=quoState(source),row=st.rows[st.index];if(!row)return null;const pool=source==='yelp'?yelpSearchCandidates:liveSearchCandidates;return pool.find(x=>String(f(x,'id'))===String(row.candidate_id))||pool.find(x=>quoPhone(x)===row.phone)||null;}
+function quoRowCandidateFallback(source,row){
+  if(!row)return null;
+  const snap=row.candidate_snapshot&&typeof row.candidate_snapshot==='object'?row.candidate_snapshot:{};
+  const loc=String(row.location||'').split(',').map(x=>x.trim());
+  return {
+    ...snap,
+    id:String(snap.id||row.candidate_id||('quo-'+source+'-'+phoneFindDigits(row.phone))),
+    name:String(snap.name||row.name||'').trim(),
+    business_name:String(snap.business_name||snap.name||row.name||'').trim(),
+    phone:String(snap.phone||row.phone||''),
+    normalized_phone:phoneFindDigits(snap.normalized_phone||snap.phone||row.phone),
+    primary_trade:String(snap.primary_trade||snap.trade||v('trade')||'').trim(),
+    trade:String(snap.trade||snap.primary_trade||v('trade')||'').trim(),
+    city:String(snap.city||loc[0]||'').trim(),
+    state:soloStateCode(snap.state||loc[1]||''),
+    zip_code:cleanZip(snap.zip_code||''),
+    source_url:String(snap.source_url||row.source_url||''),
+    _source_kind:source==='yelp'?'yelp':'live',
+    distance_miles:snap.distance_miles??row.distance_miles
+  };
+}
+function currentQuoCandidate(source){
+  const st=quoState(source),row=st.rows[st.index];if(!row)return null;
+  const pool=source==='yelp'?yelpSearchCandidates:liveSearchCandidates;
+  return pool.find(x=>String(f(x,'id'))===String(row.candidate_id))||pool.find(x=>quoPhone(x)===row.phone)||quoRowCandidateFallback(source,row);
+}
 function openCurrentQuoFastHire(source){const t=currentQuoCandidate(source);if(!t){note(quoPrefix(source)+'Notice','Current queue result is no longer available. Re-run this search.','error');return;}openFastHireModal(t);}
-async function addCurrentQuoToSolo(source){const t=currentQuoCandidate(source);if(!t)return;await addSearchCandidateToSolo(String(f(t,'id')));updateQuoCount(source);}
+async function addCurrentQuoToSolo(source){
+  const t=currentQuoCandidate(source);if(!t)return;
+  const saved=await persistSearchCandidateAsSolo(t,source);
+  if(saved){
+    const st=quoState(source),row=st.rows[st.index];if(row){row.solo_saved=true;row.candidate_snapshot={...(row.candidate_snapshot||{}),...saved,_source_kind:source==='yelp'?'yelp':'live'};}
+    saveQuoQueueLocal(source);updateQuoCount(source);
+  }
+}
 async function addCurrentQuoToVendor(source){const t=currentQuoCandidate(source);if(!t)return;await addSearchCandidateToVendor(String(f(t,'id')));updateQuoCount(source);}
 async function openQuoRoute(source){
   source=source==='yelp'?'yelp':'live';
@@ -3482,7 +3544,17 @@ async function openQuoRoute(source){
   const local=loadQuoQueueLocal(source),localMap=new Map(local.rows.map(x=>[phoneFindDigits(x.phone),x]));let saved=[];st.dbReady=true;
   try{saved=await req('/quo_manual_routes?wo_number=eq.'+encodeURIComponent(v('won')||'draft')+'&source_kind=eq.'+source+'&select=technician_phone,route_status,copied_at')||[];}catch{st.dbReady=false;}
   const savedMap=new Map(saved.map(x=>[phoneFindDigits(x.technician_phone),x]));
-  st.rows=rows.map(({t,phone})=>{const key=phoneFindDigits(phone),db=savedMap.get(key)||{},loc=localMap.get(key)||{},status=db.route_status||loc.status||'pending',contacted=Boolean(db.copied_at||loc.contacted||globallyContactedPhones.has(key)||status==='copied');return {candidate_id:String(f(t,'id')||''),name:tname(t),phone,distance_miles:candidateDistanceMiles(t),location:[f(t,'city'),f(t,'state')].filter(Boolean).join(', '),source_url:sourceLinkForCandidate(t),status,contacted};});
+  st.rows=rows.map(({t,phone})=>{
+    const key=phoneFindDigits(phone),db=savedMap.get(key)||{},loc=localMap.get(key)||{},status=db.route_status||loc.status||'pending',contacted=Boolean(db.copied_at||loc.contacted||globallyContactedPhones.has(key)||status==='copied');
+    const candidate_snapshot={
+      id:String(f(t,'id')||''),name:tname(t),business_name:String(f(t,'business_name')||tname(t)||''),phone:String(f(t,'phone')||phone),normalized_phone:key,
+      primary_trade:String(f(t,'primary_trade','trade')||v('trade')||''),trade:String(f(t,'trade','primary_trade')||v('trade')||''),city:String(f(t,'city')||''),state:soloStateCode(f(t,'state')),zip_code:cleanZip(f(t,'zip_code')),
+      latitude:f(t,'latitude')||null,longitude:f(t,'longitude')||null,rating:f(t,'rating')||null,reviews_count:f(t,'reviews_count')||0,
+      source_platform:String(f(t,'source_platform')||''),source_type:String(f(t,'source_type')||''),source_url:sourceLinkForCandidate(t),facebook_url:String(f(t,'facebook_url')||''),
+      _source_kind:source==='yelp'?'yelp':'live',distance_miles:candidateDistanceMiles(t)
+    };
+    return {candidate_id:String(f(t,'id')||''),name:tname(t),phone,distance_miles:candidateDistanceMiles(t),location:[f(t,'city'),f(t,'state')].filter(Boolean).join(', '),source_url:sourceLinkForCandidate(t),status,contacted,solo_saved:Boolean(loc.solo_saved),candidate_snapshot};
+  });
   let pending=st.rows.findIndex(x=>!quoRowContacted(x)&&!['sent','accepted','failed'].includes(x.status));
   if(pending<0)pending=st.rows.findIndex(x=>!['sent','accepted','failed'].includes(x.status));
   st.index=pending>=0?pending:Math.min(local.index,Math.max(0,st.rows.length-1));
@@ -3623,36 +3695,50 @@ function searchCandidateById(id){
   return [...yelpSearchCandidates,...liveSearchCandidates,...candidates].find(x=>String(f(x,'id'))===key);
 }
 function candidateSourceCode(t){return f(t,'_source_kind')==='yelp'?'yelp':'live_search';}
-async function addSearchCandidateToSolo(id){
-  clr('wonotice');const t=searchCandidateById(id);if(!t)return;
-  const phone=candidatePhone10(t);if(!phone){note('wonotice','A valid US phone number is required before adding this result to Solo.','error');return;}
-  const now=new Date().toISOString(),src=candidateSourceCode(t),prob=soloProbability(t);
+async function persistSearchCandidateAsSolo(t,sourceOverride=''){
+  clr('wonotice');if(!t)return null;
+  const phone=candidatePhone10(t);if(!phone){note('wonotice','A valid US phone number is required before adding this result to Solo.','error');return null;}
+  const now=new Date().toISOString(),src=sourceOverride==='yelp'?'yelp':sourceOverride==='live'?'live_search':candidateSourceCode(t),prob=soloProbability(t);
+  const noticeId=(sourceOverride==='yelp'||f(t,'_source_kind')==='yelp')?'yelpSearchNotice':(sourceOverride==='live'||f(t,'_source_kind')==='live')?'liveSearchNotice':'soloNotice';
   try{
-    let existing=techs.find(x=>candidatePhone10(x)===phone)||null;
+    let existing=techs.find(x=>candidatePhone10(x)===phone)||soloHiredTechs.find(x=>candidatePhone10(x)===phone)||null;
     if(!existing){try{const rows=await req('/technicians?normalized_phone=eq.'+encodeURIComponent(phone)+'&limit=1');existing=Array.isArray(rows)?rows[0]:null;}catch{}}
     const oldNotes=String(f(existing,'notes')||'').trim();
     const marker='Confirmed Solo from '+(src==='yelp'?'Yelp':'Live Search')+' · probability at confirmation '+prob+'%';
     const payload={
-      name:tname(t)||null,business_name:tname(t)||null,phone:String(f(t,'phone')||''),normalized_phone:phone,
-      primary_trade:String(f(t,'primary_trade','trade')||'')||null,city:String(f(t,'city')||'')||null,state:soloStateCode(f(t,'state'))||null,zip_code:cleanZip(f(t,'zip_code'))||null,
-      latitude:Number.isFinite(Number(f(t,'latitude')))?Number(f(t,'latitude')):null,longitude:Number.isFinite(Number(f(t,'longitude')))?Number(f(t,'longitude')):null,
-      rating:Number.isFinite(Number(f(t,'rating')))?Number(f(t,'rating')):null,reviews_count:Number.isFinite(Number(f(t,'reviews_count')))?Number(f(t,'reviews_count')):0,
-      is_external:true,is_vendor:false,active:true,profile_incomplete:false,source_type:'solo_confirmed_'+src,source_platform:String(f(t,'source_platform')||'')||null,source_url:String(f(t,'source_url','facebook_url')||'')||null,
+      name:tname(t)||f(existing,'name')||null,
+      business_name:String(f(t,'business_name')||tname(t)||f(existing,'business_name')||'')||null,
+      phone:String(f(t,'phone')||f(existing,'phone')||phone),normalized_phone:phone,
+      primary_trade:String(f(t,'primary_trade','trade')||f(existing,'primary_trade')||v('trade')||'')||null,
+      city:String(f(t,'city')||f(existing,'city')||'')||null,state:soloStateCode(f(t,'state')||f(existing,'state'))||null,zip_code:cleanZip(f(t,'zip_code')||f(existing,'zip_code'))||null,
+      latitude:Number.isFinite(Number(f(t,'latitude')))?Number(f(t,'latitude')):(Number.isFinite(Number(f(existing,'latitude')))?Number(f(existing,'latitude')):null),
+      longitude:Number.isFinite(Number(f(t,'longitude')))?Number(f(t,'longitude')):(Number.isFinite(Number(f(existing,'longitude')))?Number(f(existing,'longitude')):null),
+      rating:Number.isFinite(Number(f(t,'rating')))?Number(f(t,'rating')):(Number.isFinite(Number(f(existing,'rating')))?Number(f(existing,'rating')):null),
+      reviews_count:Number.isFinite(Number(f(t,'reviews_count')))?Number(f(t,'reviews_count')):Math.max(0,Number(f(existing,'reviews_count')||0)||0),
+      is_external:true,is_vendor:false,active:true,profile_incomplete:false,
+      source_type:'solo_confirmed_'+src,source_platform:String(f(t,'source_platform')||f(existing,'source_platform')||'')||null,
+      source_url:String(f(t,'source_url','facebook_url')||f(existing,'source_url')||'')||null,
       solo_list_member:true,solo_list_added_at:f(existing,'solo_list_added_at')||now,solo_list_source:src+'_confirmed',
-      notes:[oldNotes,marker].filter(Boolean).join(' | '),updated_at:now
+      notes:[oldNotes,marker].filter(Boolean).filter((x,i,a)=>a.indexOf(x)===i).join(' | '),updated_at:now
     };
     Object.keys(payload).forEach(k=>{if(payload[k]===null||payload[k]==='')delete payload[k];});
     let saved=existing
       ? await req('/technicians?id=eq.'+encodeURIComponent(f(existing,'id')),{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)})
       : await req('/technicians',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});
     saved=Array.isArray(saved)?saved[0]:saved;
-    if(saved){
-      const idx=techs.findIndex(x=>String(f(x,'id'))===String(f(saved,'id')));if(idx>=0)techs[idx]=saved;else techs.unshift(saved);
-      const sidx=soloHiredTechs.findIndex(x=>candidatePhone10(x)===phone);if(sidx>=0)soloHiredTechs[sidx]=saved;else soloHiredTechs.unshift(saved);
-    }
-    renderParallelSearchPanels();renderSoloTechs();note(f(t,'_source_kind')==='yelp'?'yelpSearchNotice':'liveSearchNotice',tname(t)+' confirmed and added to Solo Tech.','success');
-  }catch(e){note('wonotice','Could not add to Solo Tech: '+String(e?.message||e),'error');}
+    if(!saved)throw new Error('Supabase did not return the saved Solo technician.');
+    const idx=techs.findIndex(x=>String(f(x,'id'))===String(f(saved,'id'))||candidatePhone10(x)===phone);if(idx>=0)techs[idx]=saved;else techs.unshift(saved);
+    const sidx=soloHiredTechs.findIndex(x=>String(f(x,'id'))===String(f(saved,'id'))||candidatePhone10(x)===phone);if(sidx>=0)soloHiredTechs[sidx]=saved;else soloHiredTechs.unshift(saved);
+    renderParallelSearchPanels();renderSoloTechs();
+    note(noticeId,tname(saved)+' saved to Solo Tech. Search by name or phone to retrieve this record.','success');
+    return saved;
+  }catch(e){note('wonotice','Could not add to Solo Tech: '+String(e?.message||e),'error');return null;}
 }
+async function addSearchCandidateToSolo(id){
+  const t=searchCandidateById(id);if(!t)return null;
+  return persistSearchCandidateAsSolo(t,f(t,'_source_kind')==='yelp'?'yelp':'live');
+}
+
 async function addSearchCandidateToWorkedWith(id){
   clr('wonotice');const t=searchCandidateById(id);if(!t)return;
   const phone=candidatePhone10(t);if(!phone){note('wonotice','A valid US phone number is required before adding this result to Worked With.','error');return;}
@@ -5618,8 +5704,16 @@ function companyZipRank(t,zipRaw){
   const dist=Number(f(t,'_dist'));return {bucket:Number.isFinite(dist)?dist:999999};
 }
 function soloZipQueryKey(){return [cleanZip(v('sfzip')),v('sft'),v('sfkind'),v('sfhistory'),v('sflayer'),v('sfphone'),v('sflicensed'),v('sfs').toLowerCase()].join('|');}
+function soloSearchMatches(t,query){
+  const q=String(query||'').trim().toLowerCase();if(!q)return true;
+  const qDigits=phoneFindDigits(q);
+  const phoneDigits=phoneFindDigits(f(t,'normalized_phone','phone'));
+  if(qDigits.length>=4&&phoneDigits.includes(qDigits))return true;
+  const fields=[f(t,'name'),f(t,'business_name'),f(t,'phone'),f(t,'normalized_phone'),f(t,'primary_trade','trade'),f(t,'city'),f(t,'state'),f(t,'zip_code'),f(t,'notes'),f(t,'source_platform'),f(t,'source_type')];
+  return fields.some(x=>String(x||'').toLowerCase().includes(q));
+}
 function soloBaseFilteredRows(ignoreState=false){
-  const tr=v('sft'),st=v('sfst'),kind=v('sfkind'),history=v('sfhistory'),layer=v('sflayer'),phone=v('sfphone'),licensed=v('sflicensed'),q=v('sfs').toLowerCase();
+  const tr=v('sft'),st=v('sfst'),kind=v('sfkind'),history=v('sfhistory'),layer=v('sflayer'),phone=v('sfphone'),licensed=v('sflicensed'),q=v('sfs');
   return mergedSoloTechs().filter(t=>
     (!tr||soloTradeKey(f(t,'primary_trade','trade'))==='all trades'||soloTradeKey(f(t,'primary_trade','trade'))===soloTradeKey(tr)) &&
     (ignoreState||!st||soloStateCode(f(t,'state'))===soloStateCode(st)) &&
@@ -5632,7 +5726,7 @@ function soloBaseFilteredRows(ignoreState=false){
     (history!=='responded'||(String(f(t,'_solo_kind'))==='hired'&&b(f(t,'has_responded')))) &&
     (history!=='worked'||(String(f(t,'_solo_kind'))==='hired'&&b(f(t,'has_completed_job')))) &&
     (history!=='new'||(String(f(t,'_solo_kind'))==='company'||(!b(f(t,'has_responded'))&&!b(f(t,'has_completed_job'))))) &&
-    (!q||JSON.stringify(t).toLowerCase().includes(q))
+    soloSearchMatches(t,q)
   );
 }
 function scheduleSoloZipSearch(){
