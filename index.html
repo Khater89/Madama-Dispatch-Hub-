@@ -2941,27 +2941,58 @@ function serviceAreaLabel(trade,issue=''){
   if(t.includes('glass'))return 'glass / glazing condition';
   return (String(trade||'service')+' system / equipment').trim();
 }
+function conciseTechnicianIssueSentence(value=''){
+  let text=String(value||'')
+    .replace(/\r/g,' ')
+    .replace(/\n+/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+  if(!text)return 'The site reported a service issue that requires onsite inspection.';
+
+  // Remove UI/report labels if an older generated outline is passed back in.
+  text=text
+    .replace(/^(?:Issue|Reported condition|Reported issue|Summary)\s*:\s*/i,'')
+    .replace(/\s+(?:Need|Onsite objective|Requested scope|Callback required before repair|Analysis boundary|Approval rule|Special)\s*:\s*.*$/i,'')
+    .trim();
+
+  // Intake questions/contact fields are not part of the problem sentence.
+  text=text
+    .replace(/\s*(?:Have you already|Best Contact|Best contact|Contact Phone|Best Contact Phone|Requested by|Requester)\s*[:?].*$/i,'')
+    .trim();
+
+  // Prefer a compact first factual statement instead of reproducing the entire WO.
+  const parts=text.split(/(?<=[.!])\s+/).map(x=>x.trim()).filter(Boolean);
+  if(parts.length>1){
+    let picked=parts[0];
+    if(picked.length<115 && parts[1] && !/^(?:Please|Technician|Vendor|Do not|Call|Have you)/i.test(parts[1]) && (picked+' '+parts[1]).length<=230){
+      picked+=' '+parts[1];
+    }
+    text=picked;
+  }
+  text=text.replace(/\s+/g,' ').trim();
+  if(text.length>240)text=text.slice(0,237).replace(/\s+\S*$/,'')+'…';
+  if(!/[.!?…]$/.test(text))text+='.';
+  return text;
+}
 function noGuessJobOutline(ctx={}){
-  const trade=String(ctx.trade||'service').trim()||'service';
-  const issue=cleanReportedIssue(ctx.description||ctx.source_summary||ctx.summary||ctx.sow,620)||'The site reported a service condition that needs onsite verification.';
-  const scope=compactOutreachPiece(ctx.sow,360),special=compactOutreachPiece(ctx.special_instructions||ctx.special,300);
-  return [
-    `Reported condition: ${issue}`,
-    `Service area: ${serviceAreaLabel(trade,issue)}.`,
-    'Onsite objective: Verify the reported condition, identify the affected equipment/component, and document factual observations, readings, model/serial information, and photos when applicable.',
-    scope&&scope.toLowerCase()!==issue.toLowerCase()?`Requested scope: ${scope}`:'',
-    special?`Special instruction: ${special}`:'',
-    'Callback required before repair: Provide the actual diagnosis, recommended repair plan, parts/materials/equipment needed, and total estimate.',
-    'Analysis boundary: No root cause or failed part is assumed from the WO. The technician must confirm the cause onsite before any repair is approved.',
-    'Approval rule: Do not start repair work or discuss pricing with the site before approval.'
-  ].filter(Boolean).join('\n').slice(0,1900);
+  // AI/local analysis summary gets priority. Description is only a fallback.
+  const source=ctx.analysis_summary||ctx.summary||ctx.problem_summary||ctx.issue_summary||ctx.description||ctx.source_summary||ctx.sow||'';
+  return conciseTechnicianIssueSentence(cleanReportedIssue(source,520)||source);
 }
 function technicianFacingSummary(ctx={}){return noGuessJobOutline(ctx);}
 function applyTechnicianFacingSummary(a,raw){
   if(!a||typeof a!=='object')return a;
-  const issue=reportedIssueFromRaw(raw,a);
-  a.description=issue||cleanReportedIssue(a.description||a.sow||'',620);
-  a.job_outline=noGuessJobOutline({trade:a.trade,description:a.description,sow:a.sow,special_instructions:a.special_instructions});
+  // Preserve the AI-created summary BEFORE replacing a.summary with the technician line.
+  const analyzedSummary=String(a.summary||a.problem_summary||a.dispatch_brief?.issue_summary||'').trim();
+  const reported=reportedIssueFromRaw(raw,a);
+  a.description=reported||cleanReportedIssue(a.description||a.sow||'',620);
+  a.job_outline=noGuessJobOutline({
+    trade:a.trade,
+    analysis_summary:analyzedSummary,
+    problem_summary:a.problem_summary,
+    description:a.description,
+    sow:a.sow
+  });
   a.summary=a.job_outline;
   if(a.dispatch_brief&&typeof a.dispatch_brief==='object')a.dispatch_brief.issue_summary=a.job_outline;
   return a;
