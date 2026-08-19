@@ -6383,7 +6383,7 @@ async function syncDiagnosisIncurredPaymentRequests(woId=workflowWOId){const wo=
   for(const old of autoRows.filter(p=>!wanted.has(String(paymentMeta(p).diagnosis_incurred_id||'')))){await req('/payment_requests?id=eq.'+encodeURIComponent(f(old,'id')),{method:'DELETE',headers:{Prefer:'return=minimal'}});paymentRequests=paymentRequests.filter(p=>String(f(p,'id'))!==String(f(old,'id')));deleted++;}
   paymentRequests.sort((a,b)=>Number(f(a,'sequence_number')||0)-Number(f(b,'sequence_number')||0));return {created,updated,deleted};}
 const _v1139SaveDiagnosis=saveDiagnosis;
-saveDiagnosis=async function(complete){await _v1139SaveDiagnosis(complete);if(stageDone('diagnosis')){try{const result=await syncDiagnosisIncurredPaymentRequests();if(result.created||result.updated||result.deleted){renderAll();note('workflowNotice',`${result.created} incurred Payment Request(s) created · ${result.updated} updated · ${result.deleted} removed. Each Diagnosis Incurred row now has its own complete Payment Request.`,'success');}}catch(e){note('workflowNotice','Diagnosis saved, but automatic Incurred Payment Requests could not be synchronized: '+e.message,'error');}}};
+saveDiagnosis=async function(complete){await _v1139SaveDiagnosis(complete);if(stageRow('diagnosis')){try{const result=await syncDiagnosisIncurredPaymentRequests();if(result.created||result.updated||result.deleted){renderAll();note('workflowNotice',`${result.created} incurred Payment Request(s) created · ${result.updated} updated · ${result.deleted} removed. Every current Diagnosis Incurred row has its own Payment Request.`,'success');}}catch(e){note('workflowNotice','Diagnosis saved, but automatic Incurred Payment Requests could not be synchronized: '+e.message,'error');}}};
 const _v1139SyncDiagnosis=synchronizeFromDiagnosis;
 synchronizeFromDiagnosis=async function(){await _v1139SyncDiagnosis();try{const result=await syncDiagnosisIncurredPaymentRequests();renderAll();renderWorkflow();note('workflowNotice',`${result.created} incurred Payment Request(s) created · ${result.updated} updated · ${result.deleted} removed. Rebuild remains required for final wording review.`,'success');}catch(e){note('workflowNotice','Synchronization completed except automatic Incurred Payment Requests: '+e.message,'error');}};
 
@@ -6487,22 +6487,97 @@ localPaymentText=function(wo,p){const meta=p?.structured_data&&typeof p.structur
 
 /* ---- v11.46 current Diagnosis only; no visible sync or accumulated history ---- */
 function currentDiagnosisIncurred(woId=workflowWOId){return diagnosisIncurredItems(dataForWO(woId,'diagnosis')).filter(x=>String(x.description||'').trim()&&moneyValue(x.amount)>0);}
-async function reconcileCurrentIncurredRequests(woId=workflowWOId){const wo=wos.find(x=>String(f(x,'id'))===String(woId));if(!wo)return;const items=currentDiagnosisIncurred(woId),wanted=new Map(items.map(x=>[String(x.id),x])),identity=paymentTechnicianForWO(wo,{}),assigned=identity.record,rows=paymentsForWO(woId).filter(p=>paymentMeta(p).created_from==='diagnosis_incurred_auto'),byItem=new Map();for(const p of rows){const key=String(paymentMeta(p).diagnosis_incurred_id||'');if(!byItem.has(key))byItem.set(key,[]);byItem.get(key).push(p);}for(const [key,group] of byItem){group.sort((a,b)=>Number(f(a,'sequence_number')||0)-Number(f(b,'sequence_number')||0));if(!wanted.has(key)){for(const p of group){await req('/payment_requests?id=eq.'+encodeURIComponent(f(p,'id')),{method:'DELETE',headers:{Prefer:'return=minimal'}});paymentRequests=paymentRequests.filter(x=>String(f(x,'id'))!==String(f(p,'id')));}continue;}for(const p of group.slice(1)){await req('/payment_requests?id=eq.'+encodeURIComponent(f(p,'id')),{method:'DELETE',headers:{Prefer:'return=minimal'}});paymentRequests=paymentRequests.filter(x=>String(f(x,'id'))!==String(f(p,'id')));}}
-  for(const item of items){const key=String(item.id),existing=paymentsForWO(woId).find(p=>paymentMeta(p).created_from==='diagnosis_incurred_auto'&&String(paymentMeta(p).diagnosis_incurred_id||'')===key),status=String(item.description).trim(),meta={...(existing?paymentMeta(existing):{}),purpose:'advance',purpose_label:status,display_status:status,description:status,created_from:'diagnosis_incurred_auto',diagnosis_incurred_id:key},payload={work_order_id:woId,request_date:f(existing,'request_date')||new Date().toISOString().slice(0,10),status:'deposit',status_note:status,nte:currentQuoteNTE(woId)||null,amount_due:moneyValue(item.amount),incurred:0,total_cost:0,payment_method:f(existing,'payment_method')||paymentMethodForWOV1166(woId,assigned)||'Not confirmed',trade:paymentTradeForWO(wo,{}),technician_name:identity.name||'Assigned technician',technician_phone:identity.phone||'Not available',store_name:f(wo,'store_name')||null,address:paymentAddress(wo)||null,dispatcher:f(existing,'dispatcher')||'Khater',team_leader:f(existing,'team_leader')||'Allan',company_name:f(existing,'company_name')||'Jayco Maintenance Group',structured_data:meta};payload.content=localPaymentText(wo,{...payload,display_status:status,incurred_breakdown:''});const d=await req(existing?'/payment_requests?id=eq.'+encodeURIComponent(f(existing,'id')):'/payment_requests',{method:existing?'PATCH':'POST',body:JSON.stringify(payload)}),saved=Array.isArray(d)?d[0]:d;if(existing)Object.assign(existing,saved||payload);else paymentRequests.push(saved);}}
+async function reconcileCurrentIncurredRequests(woId=workflowWOId){
+  const wo=wos.find(x=>String(f(x,'id'))===String(woId));
+  if(!wo)return {created:0,updated:0,deleted:0};
+  const items=currentDiagnosisIncurred(woId),wanted=new Map(items.map(x=>[String(x.id),x]));
+  const identity=paymentTechnicianForWO(wo,{}),assigned=identity.record;
+  const rows=paymentsForWO(woId).filter(p=>paymentMeta(p).created_from==='diagnosis_incurred_auto');
+  const byItem=new Map();
+  for(const p of rows){const key=String(paymentMeta(p).diagnosis_incurred_id||'');if(!byItem.has(key))byItem.set(key,[]);byItem.get(key).push(p);}
+  let created=0,updated=0,deleted=0;
+
+  // Delete ONLY stale/duplicate auto-Incurred PRs. Never touch unrelated/manual/final PRs.
+  for(const [key,group] of byItem){
+    group.sort((a,b)=>Number(f(a,'sequence_number')||0)-Number(f(b,'sequence_number')||0));
+    const remove=!wanted.has(key)?group:group.slice(1);
+    for(const row of remove){
+      await req('/payment_requests?id=eq.'+encodeURIComponent(f(row,'id')),{method:'DELETE',headers:{Prefer:'return=minimal'}});
+      paymentRequests=paymentRequests.filter(x=>String(f(x,'id'))!==String(f(row,'id')));
+      deleted++;
+    }
+  }
+
+  for(const item of items){
+    const key=String(item.id),status=String(item.description||'Incurred').trim(),amount=moneyValue(item.amount);
+    const existing=paymentsForWO(woId).find(p=>paymentMeta(p).created_from==='diagnosis_incurred_auto'&&String(paymentMeta(p).diagnosis_incurred_id||'')===key);
+    const oldMeta=existing?paymentMeta(existing):{};
+    const meta={...oldMeta,purpose:'advance',purpose_label:status,display_status:status,description:status,created_from:'diagnosis_incurred_auto',diagnosis_incurred_id:key};
+    const payload={
+      work_order_id:woId,
+      request_date:f(existing,'request_date')||new Date().toISOString().slice(0,10),
+      status:'deposit',status_note:status,
+      nte:currentQuoteNTE(woId)||null,
+      amount_due:amount,incurred:0,total_cost:amount,
+      // Keep user-edited PR fields. Auto-fill only when blank/new.
+      payment_method:f(existing,'payment_method')||paymentMethodForWOV1166(woId,assigned)||'Not confirmed',
+      trade:f(existing,'trade')||paymentTradeForWO(wo,{}),
+      technician_name:f(existing,'technician_name')||identity.name||'Assigned technician',
+      technician_phone:f(existing,'technician_phone')||identity.phone||'Not available',
+      store_name:f(existing,'store_name')||f(wo,'store_name')||null,
+      address:f(existing,'address')||paymentAddress(wo)||null,
+      dispatcher:f(existing,'dispatcher')||'Khater',
+      team_leader:f(existing,'team_leader')||'Allan',
+      company_name:f(existing,'company_name')||'Jayco Maintenance Group',
+      structured_data:meta
+    };
+    // Diagnosis controls linked status/amount/NTE; all other manually edited PR fields are preserved.
+    payload.content=localPaymentText(wo,{...existing,...payload,display_status:status,description:status,incurred_breakdown:''});
+    if(existing){
+      const d=await req('/payment_requests?id=eq.'+encodeURIComponent(f(existing,'id')),{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)}),saved=Array.isArray(d)?d[0]:d;
+      Object.assign(existing,saved||payload);updated++;
+    }else{
+      const d=await req('/payment_requests',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)}),saved=Array.isArray(d)?d[0]:d;
+      if(saved)paymentRequests.push(saved);created++;
+    }
+  }
+  paymentRequests.sort((a,b)=>Number(f(a,'sequence_number')||0)-Number(f(b,'sequence_number')||0));
+  return {created,updated,deleted};
+}
 
 syncDiagnosisIncurredPaymentRequests=async function(woId=workflowWOId){await reconcileCurrentIncurredRequests(woId);return {created:0,updated:currentDiagnosisIncurred(woId).length,deleted:0};};
 
-renderPreWorkPayment=function(){const items=currentDiagnosisIncurred(),rows=incurredAutoPayments();$('stageContent').innerHTML=`<h3>Incurred Payment Requests</h3><div class="stage-copy">Only the current Incurred rows in Diagnosis are used. Earlier or removed values are ignored.</div><div style="display:grid;gap:10px;margin-top:14px">${items.map(item=>{const p=rows.find(x=>String(paymentMeta(x).diagnosis_incurred_id||'')===String(item.id));return `<div class="pay-item"><div class="techhead"><div><b>${esc(item.description)}</b><div class="muted" style="font-size:11px;margin-top:5px">Amount due $${esc(moneyDisplay(item.amount))}</div></div><div style="display:flex;gap:7px">${p?`<button class="btn primary small" onclick="openPayment('${esc(workflowWOId)}','prework');setTimeout(()=>editPaymentRequest('${esc(f(p,'id'))}'),0)">Edit</button><button class="btn ghost small" onclick="printSinglePaymentRequest('${esc(f(p,'id'))}')">Print Report</button>`:`<button class="btn primary small" onclick="prepareCurrentIncurredRequests()">Create PR</button>`}</div></div></div>`;}).join('')||'<div class="empty">No current Incurred item exists in Diagnosis.</div>'}</div><div class="stage-actions"><button class="btn ghost" onclick="workflowStageView='diagnosis';renderWorkflow()">Edit Diagnosis</button><button class="btn primary" onclick="workflowStageView='completion';renderWorkflow()">Continue to Work Done</button></div>`;applyWorkflowAccordions();};
-async function prepareCurrentIncurredRequests(){await reconcileCurrentIncurredRequests();renderAll();renderWorkflow();}
+let incurredPrAutoSyncRunning=false;
+let incurredPrAutoSyncError='';
+function incurredPaymentForItem(woId,itemId){return paymentsForWO(woId).find(p=>paymentMeta(p).created_from==='diagnosis_incurred_auto'&&String(paymentMeta(p).diagnosis_incurred_id||'')===String(itemId));}
+function incurredPrSyncNeeded(woId=workflowWOId){
+  const items=currentDiagnosisIncurred(woId),rows=paymentsForWO(woId).filter(p=>paymentMeta(p).created_from==='diagnosis_incurred_auto'),wanted=new Set(items.map(x=>String(x.id))),seen=new Set(),nte=moneyValue(currentQuoteNTE(woId));
+  for(const p of rows){
+    const id=String(paymentMeta(p).diagnosis_incurred_id||'');
+    if(!id||!wanted.has(id)||seen.has(id))return true;
+    seen.add(id);
+  }
+  for(const item of items){
+    const p=incurredPaymentForItem(woId,item.id);if(!p)return true;
+    const meta=paymentMeta(p),status=String(item.description||'').trim(),amount=moneyValue(item.amount);
+    if(String(meta.display_status||meta.description||f(p,'status_note')||'').trim()!==status)return true;
+    if(Math.abs(moneyValue(f(p,'amount_due'))-amount)>.009)return true;
+    if(Math.abs(moneyValue(f(p,'total_cost'))-amount)>.009)return true;
+    if(Math.abs(moneyValue(f(p,'nte'))-nte)>.009)return true;
+  }
+  return false;
+}
+async function prepareCurrentIncurredRequests(){if(incurredPrAutoSyncRunning)return;incurredPrAutoSyncRunning=true;incurredPrAutoSyncError='';try{await reconcileCurrentIncurredRequests();renderAll();if(workflowStageView==='pre_payment')renderWorkflow();}catch(e){incurredPrAutoSyncError=String(e?.message||e);if(workflowStageView==='pre_payment')renderPreWorkPayment();note('workflowNotice','Could not prepare Incurred Payment Requests: '+incurredPrAutoSyncError,'error');}finally{incurredPrAutoSyncRunning=false;}}
+renderPreWorkPayment=function(){const woId=workflowWOId,items=currentDiagnosisIncurred(woId),needsSync=incurredPrSyncNeeded(woId);$('stageContent').innerHTML=`<h3>Incurred Payment Requests</h3><div class="stage-copy">Every CURRENT Incurred row in Diagnosis automatically becomes one independent Payment Request with Edit and Print Report actions.</div>${incurredPrAutoSyncError?`<div class="gate">PR sync needs attention: ${esc(incurredPrAutoSyncError)}</div>`:''}<div style="display:grid;gap:10px;margin-top:14px">${items.map((item,i)=>{const p=incurredPaymentForItem(woId,item.id),meta=p?paymentMeta(p):{},title=p?(meta.display_status||meta.description||item.description):item.description,amount=p?moneyValue(f(p,'amount_due')):moneyValue(item.amount);return `<div class="pay-item"><div class="techhead"><div><b>PR #${i+1} · ${esc(title||'Incurred item')}</b><div class="muted" style="font-size:11px;margin-top:5px">Amount due $${esc(moneyDisplay(amount))}</div></div><div style="display:flex;gap:7px;flex-wrap:wrap">${p?`<button class="btn primary small" onclick="editCurrentIncurredPayment('${esc(f(p,'id'))}')">Edit</button><button class="btn ghost small" onclick="printSinglePaymentRequest('${esc(f(p,'id'))}')">Print Report</button>`:`<button class="btn ghost small" disabled>${incurredPrAutoSyncError?'Not synced':'Preparing PR…'}</button>`}</div></div></div>`;}).join('')||'<div class="empty">No current Incurred item exists in Diagnosis.</div>'}</div><div class="stage-actions">${incurredPrAutoSyncError?'<button class="btn primary" onclick="incurredPrAutoSyncError=\'\';prepareCurrentIncurredRequests()">Retry</button>':''}<button class="btn primary" onclick="workflowStageView='completion';renderWorkflow()">Continue to Work Done</button></div>`;applyWorkflowAccordions();if(items.length&&needsSync&&!incurredPrAutoSyncRunning)setTimeout(()=>prepareCurrentIncurredRequests(),0);};
 
-function printSinglePaymentRequest(id){const p=paymentRequests.find(x=>String(f(x,'id'))===String(id)),wo=wos.find(x=>String(f(x,'id'))===String(f(p,'work_order_id')));if(!p||!wo)return;const text=f(p,'content')||localPaymentText(wo,p),win=window.open('','_blank');if(!win)return;win.document.write(`<!doctype html><html><head><title>Payment Request #${esc(f(p,'sequence_number')||'')}</title><style>@page{margin:18mm}body{font:14px/1.65 Arial;color:#17202a}header{border-bottom:3px solid #168f83;margin-bottom:22px;padding-bottom:12px}h1{margin:0;font-size:24px}pre{white-space:pre-wrap;font:14px/1.75 Arial;border:1px solid #bcc6cf;border-radius:8px;padding:18px}</style></head><body><header><h1>PAYMENT REQUEST</h1><div>WO ${esc(f(wo,'wo_number')||'')} · PR #${esc(f(p,'sequence_number')||'')}</div></header><pre>${esc(text)}</pre><script>window.onload=()=>window.print();<\/script></body></html>`);win.document.close();}
+function printSinglePaymentRequest(id){const p=paymentRequests.find(x=>String(f(x,'id'))===String(id)),wo=wos.find(x=>String(f(x,'id'))===String(f(p,'work_order_id')));if(!p||!wo)return;const auto=paymentMeta(p).created_from==='diagnosis_incurred_auto',displayNo=auto?currentIncurredDisplayNumber(id):(f(p,'sequence_number')||''),text=f(p,'content')||localPaymentText(wo,p),win=window.open('','_blank');if(!win)return;win.document.write(`<!doctype html><html><head><title>Payment Request #${esc(displayNo)}</title><style>@page{margin:18mm}body{font:14px/1.65 Arial;color:#17202a}header{border-bottom:3px solid #168f83;margin-bottom:22px;padding-bottom:12px}h1{margin:0;font-size:24px}pre{white-space:pre-wrap;font:14px/1.75 Arial;border:1px solid #bcc6cf;border-radius:8px;padding:18px}</style></head><body><header><h1>PAYMENT REQUEST</h1><div>WO ${esc(f(wo,'wo_number')||'')} · PR #${esc(displayNo)}</div></header><pre>${esc(text)}</pre><script>window.onload=()=>window.print();<\/script></body></html>`);win.document.close();}
 
 const _v1146StartPayment=startPaymentForm;
 startPaymentForm=function(prefill={}){['pincurreddetail','ppaidby','pstatusnote','pprompt','ppurpose'].forEach(id=>$(id)?.closest('.field')?.classList.remove('hidden'));$('paymentSyncPanel')?.classList.remove('hidden');$('technicianCostBreakdown')?.classList.remove('hidden');$('payform')?.querySelectorAll('.brief-box.hidden').forEach(x=>x.classList.remove('hidden'));_v1146StartPayment(prefill);const meta=prefill?.structured_data&&typeof prefill.structured_data==='object'?prefill.structured_data:{};if(meta.created_from!=='diagnosis_incurred_auto')return;$('pincurred').value='0.00';$('ptotal').value='0.00';$('pincurreddetail')?.closest('.field')?.classList.add('hidden');$('ppaidby')?.closest('.field')?.classList.add('hidden');$('pstatusnote')?.closest('.field')?.classList.add('hidden');$('pprompt')?.closest('.field')?.classList.add('hidden');$('paymentSyncPanel')?.classList.add('hidden');$('technicianCostBreakdown')?.classList.add('hidden');const purpose=$('ppurpose')?.closest('.field');if(purpose)purpose.classList.add('hidden');const source=$('payform')?.querySelector('.brief-box');if(source&&/Payment Request source/i.test(source.textContent||''))source.classList.add('hidden');};
 
 const _v1146PaymentDraft=paymentDraftPayload;
-paymentDraftPayload=function(){const p=_v1146PaymentDraft(),editing=paymentRequests.find(x=>String(f(x,'id'))===String(editingPaymentId));if(p&&paymentMeta(editing).created_from==='diagnosis_incurred_auto'){p.incurred=0;p.total_cost=0;p.incurred_breakdown='';p.display_status=String(p.description||'Deposit').trim();p.status_note=p.display_status;}return p;};
-updatePaymentTotal=function(){const editing=paymentRequests.find(x=>String(f(x,'id'))===String(editingPaymentId));if(paymentMeta(editing).created_from==='diagnosis_incurred_auto'){if($('pincurred'))$('pincurred').value='0.00';if($('ptotal'))$('ptotal').value='0.00';return;}if($('ptotal'))$('ptotal').value=(moneyValue(v('pamount'))+moneyValue(v('pincurred'))).toFixed(2);};
+paymentDraftPayload=function(){const p=_v1146PaymentDraft(),editing=paymentRequests.find(x=>String(f(x,'id'))===String(editingPaymentId));if(p&&paymentMeta(editing).created_from==='diagnosis_incurred_auto'){p.incurred=0;p.total_cost=moneyValue(p.amount_due);p.incurred_breakdown='';p.display_status=String(p.description||'Deposit').trim();p.status_note=p.display_status;}return p;};
+updatePaymentTotal=function(){const editing=paymentRequests.find(x=>String(f(x,'id'))===String(editingPaymentId));if(paymentMeta(editing).created_from==='diagnosis_incurred_auto'){if($('pincurred'))$('pincurred').value='0.00';if($('ptotal'))$('ptotal').value=moneyValue(v('pamount')).toFixed(2);return;}if($('ptotal'))$('ptotal').value=(moneyValue(v('pamount'))+moneyValue(v('pincurred'))).toFixed(2);};
 
 function applyWorkflowAccordions(){const root=$('stageContent');if(!root)return;root.querySelectorAll('.quote-calc-section').forEach((el,i)=>{if(el.dataset.foldReady)return;el.dataset.foldReady='1';el.classList.toggle('wf-folded',i>0);el.querySelector('.quote-section-title')?.addEventListener('click',e=>{if(e.target.closest('input,button,select,a'))return;el.classList.toggle('wf-folded');});});root.querySelectorAll('.item-card').forEach(el=>{if(el.dataset.foldReady)return;el.dataset.foldReady='1';el.classList.add('wf-folded');el.querySelector('.item-head')?.addEventListener('click',e=>{if(e.target.closest('button,input,select,a'))return;el.classList.toggle('wf-folded');});});root.querySelectorAll('.brief-box').forEach(el=>{if(el.dataset.foldReady||el.closest('.item-card'))return;const title=el.querySelector(':scope>b')?.textContent?.trim();if(!title)return;el.dataset.foldReady='1';const children=[...el.childNodes],button=document.createElement('button'),body=document.createElement('div');button.type='button';button.className='wf-accordion-toggle';button.textContent=title;body.className='wf-accordion-body';for(const child of children)body.appendChild(child);body.querySelector(':scope>b')?.remove();el.append(button,body);el.classList.add('wf-accordion');button.onclick=()=>el.classList.toggle('open');});}
 const _v1146RenderWorkflow=renderWorkflow;
@@ -6587,7 +6662,7 @@ paymentDraftPayload=function(){const p=_v1153PaymentDraft();if(!p)return p;p.nte
 
 updatePaymentTotal=function(){const amount=moneyValue(v('pamount'));if(editingFromIncurredStage()){if($('pincurred'))$('pincurred').value='0.00';if($('ptotal'))$('ptotal').value=amount.toFixed(2);return;}if($('ptotal'))$('ptotal').value=(amount+moneyValue(v('pincurred'))).toFixed(2);};
 
-function currentIncurredDisplayNumber(id){const rows=incurredAutoPayments(paymentWOId||workflowWOId),index=rows.findIndex(x=>String(f(x,'id'))===String(id));return index>=0?index+1:1;}
+function currentIncurredDisplayNumber(id){const p=paymentRequests.find(x=>String(f(x,'id'))===String(id));if(!p)return 1;const itemId=String(paymentMeta(p).diagnosis_incurred_id||''),items=currentDiagnosisIncurred(f(p,'work_order_id')||paymentWOId||workflowWOId),index=items.findIndex(x=>String(x.id)===itemId);return index>=0?index+1:1;}
 editCurrentIncurredPayment=function(id){const p=paymentRequests.find(x=>String(f(x,'id'))===String(id));if(!p)return;const wo=wos.find(x=>String(f(x,'id'))===String(f(p,'work_order_id')));paymentWOId=f(p,'work_order_id');paymentOpenMode='prework';editingPaymentId=id;$('paymodal').classList.add('show');$('paytitle').textContent='Edit Payment Request #'+currentIncurredDisplayNumber(id)+' — '+(paymentMeta(p).display_status||paymentMeta(p).description||paymentDescription(p));$('payhint').textContent='Editing this Payment Request only';$('paylist').classList.add('hidden');$('newPayBtn').classList.add('hidden');removeIncurredEditMessages();startPaymentForm(p);removeIncurredEditMessages();$('paymentGate')?.classList.add('hidden');$('paymentFields')?.classList.remove('hidden');if($('savePayBtn'))$('savePayBtn').disabled=false;const box=$('paymodal')?.querySelector('.box.scroll');if(box)box.scrollTop=0;};
 
 const _v1153StartPayment=startPaymentForm;
@@ -6730,20 +6805,24 @@ function currentIncurredIdSetV1156(woId=workflowWOId){
 }
 
 async function prunePaymentSetV1156(woId=workflowWOId){
-  const wanted=currentIncurredIdSetV1156(woId),rows=[...paymentsForWO(woId)],finals=[];let deleted=0;
+  const wanted=currentIncurredIdSetV1156(woId),rows=[...paymentsForWO(woId)],seenAuto=new Set(),finals=[];let deleted=0;
   for(const p of rows){
-    const meta=paymentMeta(p),auto=meta.created_from==='diagnosis_incurred_auto',itemId=String(meta.diagnosis_incurred_id||'');
-    if(auto && wanted.has(itemId))continue;
-    if(isCanonicalFinalPaymentV1156(p)){finals.push(p);continue;}
-    await req('/payment_requests?id=eq.'+encodeURIComponent(f(p,'id')),{method:'DELETE',headers:{Prefer:'return=minimal'}});
-    paymentRequests=paymentRequests.filter(x=>String(f(x,'id'))!==String(f(p,'id')));
-    deleted++;
+    const meta=paymentMeta(p);
+    if(meta.created_from==='diagnosis_incurred_auto'){
+      const itemId=String(meta.diagnosis_incurred_id||'');
+      if(!itemId||!wanted.has(itemId)||seenAuto.has(itemId)){
+        await req('/payment_requests?id=eq.'+encodeURIComponent(f(p,'id')),{method:'DELETE',headers:{Prefer:'return=minimal'}});
+        paymentRequests=paymentRequests.filter(x=>String(f(x,'id'))!==String(f(p,'id')));deleted++;continue;
+      }
+      seenAuto.add(itemId);continue;
+    }
+    if(isCanonicalFinalPaymentV1156(p))finals.push(p);
+    // IMPORTANT: unrelated/manual/legacy PRs are intentionally untouched.
   }
   finals.sort((a,b)=>Number(f(b,'sequence_number')||0)-Number(f(a,'sequence_number')||0));
   for(const duplicate of finals.slice(1)){
     await req('/payment_requests?id=eq.'+encodeURIComponent(f(duplicate,'id')),{method:'DELETE',headers:{Prefer:'return=minimal'}});
-    paymentRequests=paymentRequests.filter(x=>String(f(x,'id'))!==String(f(duplicate,'id')));
-    deleted++;
+    paymentRequests=paymentRequests.filter(x=>String(f(x,'id'))!==String(f(duplicate,'id')));deleted++;
   }
   paymentRequests.sort((a,b)=>Number(f(a,'sequence_number')||0)-Number(f(b,'sequence_number')||0));
   return deleted;
@@ -7298,25 +7377,31 @@ async function refreshPaymentHiringIdentityV1159(woId,onlyIncurred=false){
 
 const _v1159ReconcileCurrentIncurredRequests=reconcileCurrentIncurredRequests;
 reconcileCurrentIncurredRequests=async function(woId=workflowWOId){
+  /* Incurred PR creation must NEVER depend on technician identity.
+     Diagnosis is the source of truth; create/update/delete the matching PR first.
+     If a real technician identity exists, refresh it afterward as a convenience only. */
   const items=currentDiagnosisIncurred(woId);
+  const result=await _v1159ReconcileCurrentIncurredRequests(woId);
   if(items.length){
     const identity=strictHiringIdentityV1159(woId);
-    if(!identity.ok)throw new Error(identity.message);
+    if(identity.ok){
+      try{await refreshPaymentHiringIdentityV1159(woId,true);}catch(e){console.warn('Optional incurred PR technician refresh skipped',e);}
+    }
   }
-  const result=await _v1159ReconcileCurrentIncurredRequests(woId);
-  if(items.length)await refreshPaymentHiringIdentityV1159(woId,true);
   return result;
 };
 
 const _v1159SyncDiagnosisIncurredPaymentRequests=syncDiagnosisIncurredPaymentRequests;
 syncDiagnosisIncurredPaymentRequests=async function(woId=workflowWOId){
+  /* Same rule here: missing tech data never blocks Diagnosis -> Incurred PR sync. */
   const items=currentDiagnosisIncurred(woId);
+  const result=await _v1159SyncDiagnosisIncurredPaymentRequests(woId);
   if(items.length){
     const identity=strictHiringIdentityV1159(woId);
-    if(!identity.ok)throw new Error(identity.message);
+    if(identity.ok){
+      try{await refreshPaymentHiringIdentityV1159(woId,true);}catch(e){console.warn('Optional incurred PR technician refresh skipped',e);}
+    }
   }
-  const result=await _v1159SyncDiagnosisIncurredPaymentRequests(woId);
-  if(items.length)await refreshPaymentHiringIdentityV1159(woId,true);
   return result;
 };
 
@@ -7896,18 +7981,28 @@ function paymentEditClockV1167(){
   const form=$('payform');
   return {field:Number(form?.dataset.fieldEditAt||0),content:Number(form?.dataset.contentEditAt||0)};
 }
+function rebuildIncurredPaymentTextV1168(){
+  if(!editingFromIncurredStage())return;
+  const wo=wos.find(x=>String(f(x,'id'))===String(paymentWOId));if(!wo)return;
+  const p=paymentDraftPayload();if(!p)return;
+  p.nte=currentQuoteNTE(paymentWOId);p.incurred=0;p.total_cost=moneyValue(p.amount_due);p.incurred_breakdown='';
+  if($('pnte'))$('pnte').value=moneyValue(p.nte).toFixed(2);
+  if($('ptotal'))$('ptotal').value=moneyValue(p.total_cost).toFixed(2);
+  if($('pcontent'))$('pcontent').value=localPaymentText(wo,p);
+}
 function bindPaymentEditClockV1167(){
   const form=$('payform');if(!form)return;
   if(!form.dataset.v1167ClockBound){
     form.dataset.v1167ClockBound='1';
-    form.addEventListener('input',ev=>{
-      if(ev.target?.id==='pcontent')form.dataset.contentEditAt=String(Date.now());
-      else if(ev.target?.matches?.('input,textarea,select'))form.dataset.fieldEditAt=String(Date.now());
-    });
-    form.addEventListener('change',ev=>{
-      if(ev.target?.id==='pcontent')form.dataset.contentEditAt=String(Date.now());
-      else if(ev.target?.matches?.('input,textarea,select'))form.dataset.fieldEditAt=String(Date.now());
-    });
+    const track=ev=>{
+      if(ev.target?.id==='pcontent'){form.dataset.contentEditAt=String(Date.now());return;}
+      if(ev.target?.matches?.('input,textarea,select')){
+        form.dataset.fieldEditAt=String(Date.now());
+        if(editingFromIncurredStage())rebuildIncurredPaymentTextV1168();
+      }
+    };
+    form.addEventListener('input',track);
+    form.addEventListener('change',track);
   }
   form.dataset.fieldEditAt='0';
   form.dataset.contentEditAt='0';
@@ -7923,6 +8018,16 @@ startPaymentForm=function(prefill={}){
 const _v1167GeneratePaymentDraft=generatePaymentDraft;
 generatePaymentDraft=async function(){
   await settleLatestEditorV1167();
+  if(editingFromIncurredStage()){
+    clr('paynotice');
+    const p=paymentDraftPayload(),wo=wos.find(x=>String(f(x,'id'))===String(paymentWOId));
+    if(!p||!wo){note('paynotice','Could not read the current Payment Request fields.','error');return false;}
+    const missing=validatePaymentForm(p);if(missing.length){note('paynotice','Complete: '+missing.join(', ')+'.','error');return false;}
+    rebuildIncurredPaymentTextV1168();
+    if($('payform'))$('payform').dataset.contentEditAt=String(Date.now());
+    note('paynotice','Payment Request rebuilt from the current edited fields.','success');
+    return true;
+  }
   const before=String($('pcontent')?.value||'');
   const result=await _v1167GeneratePaymentDraft();
   const after=String($('pcontent')?.value||'');
