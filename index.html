@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 :root{
   --bg:#f6f8fc; --bg2:#ffffff;
@@ -43,6 +44,11 @@ a:hover{text-decoration:underline}
 @media(prefers-reduced-motion:reduce){.orb{animation:none}}
 
 .app{position:relative;z-index:1;display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+#authGate{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+.user-chip{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted)}
+.user-chip b{color:var(--text)}
+.user-chip button{border:none;background:transparent;color:var(--teal);font-weight:600;cursor:pointer;font-size:12.5px;padding:0}
+.user-chip button:hover{text-decoration:underline}
 
 /* sidebar */
 .side{padding:26px 18px;border-right:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(248,250,252,.88));backdrop-filter:blur(10px)}
@@ -1551,7 +1557,20 @@ body.search-workspace-screen #parallelSearchWorkspace.focus-yelp #yelpSearchPane
 </head>
 <body>
 <div class="orbs"><div class="orb a"></div><div class="orb b"></div><div class="orb c"></div></div>
-<div class="app">
+
+<div id="authGate" style="display:none">
+  <div class="card" style="width:min(360px,92vw)">
+    <div class="brand" style="margin-bottom:22px"><span class="glyph">◆</span><div>MDAMA Dispatch<small>SIGN IN</small></div></div>
+    <div id="authNotice" class="notice"></div>
+    <form id="authForm" onsubmit="handleSignIn();return false;">
+      <div class="field"><label>Email</label><input id="auth_email" type="email" autocomplete="username" placeholder="you@company.com"></div>
+      <div class="field"><label>Password</label><input id="auth_password" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+      <button id="authSubmitBtn" class="btn primary" type="submit" style="width:100%;justify-content:center">Sign in</button>
+    </form>
+  </div>
+</div>
+
+<div class="app" id="appRoot" style="display:none">
 <aside class="side">
   <div class="brand"><span class="glyph">◆</span><div>MDAMA Dispatch<small>WO LIFECYCLE · TECH HIRING</small></div></div>
   <nav class="nav">
@@ -1576,7 +1595,7 @@ body.search-workspace-screen #parallelSearchWorkspace.focus-yelp #yelpSearchPane
 <main class="main">
   <div class="top">
     <div><h1 id="title">Dashboard</h1><div class="sub">Live operations overview</div></div>
-    <div class="top-actions"><button class="btn primary top-new" onclick="startNewWO()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New Work Order</button><div class="status"><span id="dot" class="dot"></span><span id="dbs">Connecting…</span></div></div>
+    <div class="top-actions"><button class="btn primary top-new" onclick="startNewWO()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New Work Order</button><div class="status"><span id="dot" class="dot"></span><span id="dbs">Connecting…</span></div><div id="userChip" class="user-chip"></div></div>
   </div>
   <div id="global" class="notice"></div>
   <div id="woStickyBrief" class="wo-sticky-brief" aria-live="polite">
@@ -1868,12 +1887,12 @@ body.search-workspace-screen #parallelSearchWorkspace.focus-yelp #yelpSearchPane
       <div class="tablewrap"><table><thead><tr><th>Match</th><th>Technician</th><th>Phone / Email</th><th>Trade</th><th>City</th><th>State</th><th>ZIP</th><th>Reference Rates</th><th>Jobs</th><th>Payment</th><th>Source</th><th>Actions</th></tr></thead><tbody id="wwBody"></tbody></table></div>
 
       <div id="wwImportPanel" class="ww-import-panel" style="display:none">
-        <div class="section"><div><h3 style="margin:0">Smart Import Pipeline</h3><span class="hint">CSV · Excel (.xlsx/.xls) · public Google Sheets · phone-first data profiling, automatic mapping, cleaning, and de-duplication.</span></div><button type="button" class="btn ghost small" onclick="toggleWorkedWithImport(false)">Close</button></div>
+        <div class="section"><div><h3 style="margin:0">Smart Import Pipeline</h3><span class="hint">CSV · Excel (.xlsx/.xls) · public Google Sheets · automatic column mapping, cleaning, de-duplication, and ZIP-based City/State backfill. Any layout works — only Phone, City and State need to end up filled in.</span></div><button type="button" class="btn ghost small" onclick="toggleWorkedWithImport(false)">Close</button></div>
         <div class="grid g2">
           <div class="field"><label>File</label><input id="ww_import_file" type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><button class="btn ghost small" type="button" style="margin-top:8px" onclick="prepareWorkedWithFileImport()">Read file</button></div>
-          <div class="field"><label>Google Sheets URL</label><input id="ww_sheet_url" placeholder="https://docs.google.com/spreadsheets/d/…"><button class="btn ghost small" type="button" style="margin-top:8px" onclick="prepareWorkedWithGoogleSheet()">Load Google Sheet</button><div class="hint" style="margin-top:6px">The Sheet must be public / Anyone with the link.</div></div>
+          <div class="field"><label>Google Sheets URL</label><input id="ww_sheet_url" placeholder="https://docs.google.com/spreadsheets/d/…"><button class="btn ghost small" type="button" style="margin-top:8px" onclick="prepareWorkedWithGoogleSheet()">Load Google Sheet</button><div class="hint" style="margin-top:6px">Share → General access → "Anyone with the link" (Viewer) — NOT "Anyone in [your organization]", which looks public but still blocks this. If it still fails, use File → Share → Publish to web (CSV) instead and paste that link here.</div></div>
         </div>
-        <div class="grid g2"><div class="field"><label>Supabase target</label><input value="worked_with_technicians" class="readonly" readonly></div><div class="field"><label>Import rule</label><input value="Phone required · all other fields optional" class="readonly" readonly><div class="hint" style="margin-top:6px">Unknown/unmapped columns are preserved inside Raw Data.</div></div></div>
+        <div class="grid g2"><div class="field"><label>Supabase target</label><input value="worked_with_technicians" class="readonly" readonly></div><div class="field"><label>Import rule</label><input value="Phone + City + State required · all other fields optional" class="readonly" readonly><div class="hint" style="margin-top:6px">A row missing City/State is still kept if it has a 5-digit ZIP — the ZIP is used to auto-fill City/State. Unknown/unmapped columns are preserved inside Raw Data.</div></div></div>
         <div class="ww-progress"><span id="wwImportBar"></span></div><div id="wwImportStatus" class="ww-map-summary">Choose a file or Google Sheets URL.</div>
         <div id="wwImportNotice" class="notice"></div>
         <div id="wwImportPreview" style="display:none;margin-top:12px"><div class="section"><div><h3 style="margin:0">Normalized Preview</h3><div id="wwImportMapping" class="ww-map-summary"></div></div><button id="wwImportCommitBtn" class="btn primary" type="button" onclick="commitWorkedWithImport()">Import normalized rows</button></div><div class="tablewrap" style="max-height:320px"><table><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Trade</th><th>City</th><th>State</th><th>ZIP</th><th>Rate</th><th>Total Amount</th><th>Payment</th></tr></thead><tbody id="wwImportBody"></tbody></table></div></div>
@@ -2140,6 +2159,16 @@ const SB_KEY = 'sb_publishable_ia6a98UxrlD-9a3-iXnl6Q_AIWG67zj';
 const API = SB_URL + '/rest/v1';
 const FN  = SB_URL + '/functions/v1';
 
+/* ---- v12.0 multi-user auth ----
+   MDAMA now requires a signed-in Supabase Auth user for every request; the
+   publishable key alone (the old no-login model) no longer carries write
+   access under the RLS policies in sql/30_multiuser_auth_foundation.sql.
+   `sbAuth` only handles login/session/refresh — every other Supabase call in
+   this file still goes through the existing hand-rolled req()/fn() helpers,
+   which now attach the live session's access token instead of the bare key. */
+const sbAuth = window.supabase.createClient(SB_URL, SB_KEY, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:false } });
+let authSession = null, authProfile = null;
+
 let techs = [], wos = [], paymentRequests = [], stageRows = [], woFiles = [], currentWO = null, candidates = [], page = 0, settings = {};
 let vendors=[], vendorTechLinks=[], vendorSchemaReady=false, pendingVendorTechVendor=null;
 let liveSearchCandidates = [], yelpSearchCandidates = []; // independent parallel search state
@@ -2195,6 +2224,25 @@ async function zipCoordinates(zip){
     zipGeoCache[zip]={lat,lng}; saveZipGeoCache(); return {lat,lng};
   }catch{return null;}
 }
+/* Same ZIP source as zipCoordinates, but also resolves city/state — used to
+   backfill a technician's coverage location when a sheet only supplies a ZIP. */
+async function zipPlaceInfo(zip){
+  zip=cleanZip(zip); if(zip.length!==5)return null;
+  const cached=zipGeoCache[zip];
+  if(cached&&cached!==false&&validCoord(Number(cached.lat),Number(cached.lng))&&(cached.city||cached.state)){
+    return {lat:Number(cached.lat),lng:Number(cached.lng),city:cached.city||null,state:cached.state||null};
+  }
+  if(cached===false)return null;
+  try{
+    const r=await fetch('https://api.zippopotam.us/us/'+encodeURIComponent(zip),{headers:{Accept:'application/json'}});
+    if(!r.ok){if(r.status===404){zipGeoCache[zip]=false;saveZipGeoCache();}return null;}
+    const d=await r.json(),place=Array.isArray(d?.places)?d.places[0]:null;
+    const lat=Number(place?.latitude),lng=Number(place?.longitude);
+    const city=String(place?.['place name']||'').trim()||null,state=soloStateCode(place?.['state abbreviation']||'')||null;
+    if(!validCoord(lat,lng))return null;
+    zipGeoCache[zip]={lat,lng,city,state}; saveZipGeoCache(); return {lat,lng,city,state};
+  }catch{return null;}
+}
 function directTechCoordinates(t){
   const lat=Number(f(t,'latitude','lat')),lng=Number(f(t,'longitude','lng','lon'));
   return validCoord(lat,lng)?{lat,lng}:null;
@@ -2226,7 +2274,7 @@ async function rankRowsByZipDistance(rows,originZip,limit=NEAREST_TECH_LIMIT,onP
   return {rows:ranked.slice(0,limit).map((t,i)=>({...t,_rank:i+1})),resolved:ranked.length,total:rows.length,originZip};
 }
 
-function hdr(){ return { apikey:SB_KEY, Authorization:'Bearer '+SB_KEY, 'Content-Type':'application/json', Prefer:'return=representation' }; }
+function hdr(){ return { apikey:SB_KEY, Authorization:'Bearer '+(authSession?.access_token||SB_KEY), 'Content-Type':'application/json', Prefer:'return=representation' }; }
 async function req(path, opt = {}){
   const r = await fetch(API + path, { ...opt, headers:{ ...hdr(), ...(opt.headers||{}) } });
   const t = await r.text(); let d; try { d = t ? JSON.parse(t) : null; } catch { d = t; }
@@ -2342,7 +2390,7 @@ function populateCompanyLayerFilter(){
 }
 
 async function fn(name, payload){
-  const r = await fetch(FN + '/' + name, { method:'POST', headers:{ apikey:SB_KEY, 'Content-Type':'application/json' }, body:JSON.stringify(payload) });
+  const r = await fetch(FN + '/' + name, { method:'POST', headers:{ apikey:SB_KEY, Authorization:'Bearer '+(authSession?.access_token||SB_KEY), 'Content-Type':'application/json' }, body:JSON.stringify(payload) });
   const t=await r.text();let d;try{d=t?JSON.parse(t):{};}catch{d={error:t};}
   if (!r.ok) throw new Error(d.error||d.message||('Function HTTP '+r.status));
   return d;
@@ -2352,7 +2400,7 @@ async function fn(name, payload){
 async function companyFn(name, payload){
   const r = await fetch(FN + '/' + name, {
     method:'POST',
-    headers:{ apikey:SB_KEY, 'Content-Type':'application/json' },
+    headers:{ apikey:SB_KEY, Authorization:'Bearer '+(authSession?.access_token||SB_KEY), 'Content-Type':'application/json' },
     body:JSON.stringify(payload||{})
   });
   const t=await r.text();let d;try{d=t?JSON.parse(t):{};}catch{d={error:t};}
@@ -8375,7 +8423,60 @@ const _v1168RenderDiagnosis=renderDiagnosis;renderDiagnosis=function(){_v1168Ren
 const _v1168LoadAll=loadAll;loadAll=async function(){await _v1168LoadAll();await loadWorkedWithTechnicians(false);renderWorkedWith();};
 ['city','state','zip','trade'].forEach(id=>$(id)?.addEventListener('change',()=>{if(v('won')||v('raw'))matchWorkedWithToCurrentWO(false).catch(()=>{});}));
 
-(async()=>{ renderAll(); if(await test()){ await loadAll(); await loadSettings(); } })();
+/* ---- v12.0 auth gate ---- */
+function showAuthGate(message,type){
+  $('appRoot').style.display='none';$('authGate').style.display='flex';
+  if(message){$('authNotice').innerHTML='<div>'+esc(message)+'</div>';$('authNotice').className='notice show '+(type||'error');}
+  else{$('authNotice').className='notice';}
+  setTimeout(()=>$('auth_email')?.focus(),30);
+}
+function renderUserChip(){
+  const chip=$('userChip');if(!chip)return;
+  const email=authSession?.user?.email||'';
+  const role=authProfile?.role==='admin'?' · Admin':'';
+  chip.innerHTML=email?`<b>${esc(email)}</b><span>${esc(role)}</span><button type="button" onclick="handleSignOut()">Sign out</button>`:'';
+}
+async function loadAuthProfile(){
+  try{
+    const rows=await req('/profiles?select=*&id=eq.'+encodeURIComponent(authSession.user.id)+'&limit=1');
+    authProfile=Array.isArray(rows)?rows[0]:null;
+  }catch(e){console.warn('Could not load profile',e);authProfile=null;}
+  renderUserChip();
+}
+async function bootApp(){
+  $('authGate').style.display='none';$('appRoot').style.display='';
+  await loadAuthProfile();
+  if(authProfile&&authProfile.active===false){
+    await sbAuth.auth.signOut();authSession=null;authProfile=null;
+    showAuthGate('This account has been deactivated. Contact your admin.','error');return;
+  }
+  renderAll();
+  if(await test()){ await loadAll(); await loadSettings(); }
+}
+async function handleSignIn(){
+  const email=v('auth_email'),password=v('auth_password');
+  if(!email||!password){$('authNotice').innerHTML='<div>Enter your email and password.</div>';$('authNotice').className='notice show error';return;}
+  const btn=$('authSubmitBtn'),original=btn.textContent;btn.disabled=true;btn.textContent='Signing in…';
+  try{
+    const {data,error}=await sbAuth.auth.signInWithPassword({email,password});
+    if(error)throw error;
+    authSession=data.session;
+    await bootApp();
+  }catch(e){
+    $('authNotice').innerHTML='<div>'+esc(e?.message||'Sign in failed.')+'</div>';$('authNotice').className='notice show error';
+  }finally{btn.disabled=false;btn.textContent=original;}
+}
+async function handleSignOut(){
+  try{await sbAuth.auth.signOut();}catch(e){console.warn('Sign out failed',e);}
+  location.reload();
+}
+(async()=>{
+  const {data:{session}}=await sbAuth.auth.getSession();
+  authSession=session;
+  sbAuth.auth.onAuthStateChange((event,session)=>{ authSession=session; if(event==='TOKEN_REFRESHED')renderUserChip(); });
+  if(!authSession){ showAuthGate(); return; }
+  await bootApp();
+})();
 
 
 
@@ -8511,8 +8612,20 @@ function wwBestWorksheetAoaV1169(XLSX,wb){
   if(!best.length)throw new Error('The Excel workbook does not contain any readable rows.');return best;
 }
 function wwGoogleSheetUrlsV1169(raw){
-  const url=String(raw||'').trim(),m=url.match(/\/spreadsheets\/d\/([A-Za-z0-9_-]+)/);if(!m)throw new Error('Enter a valid Google Sheets URL.');
-  const gid=(url.match(/[?&#]gid=(\d+)/)||[])[1]||'0',id=m[1];
+  const url=String(raw||'').trim();
+  const gid=(url.match(/[?&#]gid=(\d+)/)||[])[1]||'0';
+  /* "Publish to web" links (File > Share > Publish to web) use a separate ID
+     namespace (/d/e/<pubId>/...) and their CSV export reliably sends
+     Access-Control-Allow-Origin, unlike the regular Share-link export below —
+     handle that shape first so the generic /d/(id) regex never mis-captures
+     the literal "e" segment as the sheet ID. */
+  const pub=url.match(/\/spreadsheets\/d\/e\/([A-Za-z0-9_-]+)/);
+  if(pub){
+    const pubId=pub[1];
+    return [`https://docs.google.com/spreadsheets/d/e/${pubId}/pub?gid=${gid}&single=true&output=csv`,`https://docs.google.com/spreadsheets/d/e/${pubId}/pub?output=csv`];
+  }
+  const m=url.match(/\/spreadsheets\/d\/([A-Za-z0-9_-]+)/);if(!m)throw new Error('Enter a valid Google Sheets URL (a normal Share link, or a File → Share → Publish to web link).');
+  const id=m[1];
   return [`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${gid}`,`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`];
 }
 
@@ -8610,12 +8723,12 @@ function wwPhoneFromRowV1170(arr,headers,preferred){
     const hit=wwPhoneFromValueV1170(arr[i]);if(hit){best=hit;break;}
   }return best;
 }
-function wwNormalizeTableV1170(aoa,source){
+async function wwNormalizeTableV1170(aoa,source){
   const detected=wwDetectHeaderV1170(aoa),headers=detected.headers,map={...detected.map},dataRows=detected.rows.slice(detected.index+1);
   map.phone=wwProfilePhoneColumnV1170(headers,dataRows,map.phone);
   const emailCol=wwProfileEmailColumnV1170(headers,dataRows,map.email);if(emailCol!=null)map.email=emailCol;
   const tradeCol=wwProfileTradeColumnV1170(headers,dataRows,map.primary_trade);if(tradeCol!=null)map.primary_trade=tradeCol;
-  if(map.phone==null){throw new Error('No phone-number column could be identified. Phone is the only required field; all other fields are optional. If the file contains phone numbers under an unusual header, keep them as normal 10-digit US numbers and try again.');}
+  if(map.phone==null){throw new Error('No phone-number column could be identified. Phone, City and State are the required fields; every other field is optional. If the file contains phone numbers under an unusual header, keep them as normal 10-digit US numbers and try again.');}
   const rows=[],phoneIndex=new Map(),emailIndex=new Map();let skipped=0,duplicates=0,generatedNames=0;
   for(const arr of dataRows){
     if(!arr||arr.every(x=>!wwSafe(x)))continue;const get=f=>map[f]==null?'':arr[map[f]];
@@ -8636,31 +8749,73 @@ function wwNormalizeTableV1170(aoa,source){
     if(idx!==undefined){duplicates++;const prev=rows[idx];for(const [k,val] of Object.entries(obj)){if(val!==null&&val!==''&&!(k==='job_count'&&val===0))prev[k]=val;}}
     else{idx=rows.length;rows.push(obj);}phoneIndex.set(phone,idx);if(email)emailIndex.set(email,idx);
   }
-  if(!rows.length)throw new Error(`The header row was detected at row ${detected.index+1}, but no valid 10-digit US phone numbers were found. Phone is required; name/city/state/trade and every other field are optional.`);
-  return {headers,map,rows,skipped,duplicates,generatedNames,headerRow:detected.index+1,headerless:Boolean(detected.headerless)};
+  /* Coverage requirement: phone + city + state are mandatory (everything else may be
+     missing). Before enforcing it, try to backfill a missing city/state from the row's
+     ZIP — this way a sheet that only lists ZIP still builds a standard record instead
+     of being dropped. */
+  const needsLocation=rows.filter(r=>!r.city||!r.state);
+  const zipsToLookup=[...new Set(needsLocation.map(r=>cleanZip(r.zip_code)).filter(z=>z.length===5))];
+  if(zipsToLookup.length){
+    const looked=await mapLimit(zipsToLookup,6,z=>zipPlaceInfo(z).catch(()=>null));
+    const byZip=new Map(zipsToLookup.map((z,i)=>[z,looked[i]]));
+    for(const r of needsLocation){
+      const info=byZip.get(cleanZip(r.zip_code));if(!info)continue;
+      if(!r.city&&info.city)r.city=wwTitleCase(info.city);
+      if(!r.state&&info.state)r.state=info.state;
+      if(r.latitude==null&&Number.isFinite(info.lat))r.latitude=info.lat;
+      if(r.longitude==null&&Number.isFinite(info.lng))r.longitude=info.lng;
+    }
+  }
+  const locationFilled=needsLocation.filter(r=>r.city&&r.state).length;
+  const finalRows=[];let skippedNoLocation=0;
+  for(const r of rows){if(r.city&&r.state)finalRows.push(r);else skippedNoLocation++;}
+  if(!finalRows.length){
+    if(skippedNoLocation&&!skipped)throw new Error(`${skippedNoLocation} technician(s) had a valid phone number, but none had a City and State that could be determined (from City/State columns, a combined "City, ST" field, or a 5-digit ZIP). City and State are required alongside Phone — add one of those to the sheet and try again.`);
+    throw new Error(`The header row was detected at row ${detected.index+1}, but no valid 10-digit US phone numbers were found. Phone, City and State are required; every other field is optional.`);
+  }
+  return {headers,map,rows:finalRows,skipped,skippedNoLocation,locationFilled,duplicates,generatedNames,headerRow:detected.index+1,headerless:Boolean(detected.headerless)};
 }
 function wwShowImportPreviewV1170(result,source){
   _wwImportRows=result.rows;_wwImportSource=source||'Smart Import';
   const mappings=Object.entries(result.map).filter(([,idx])=>idx!=null).map(([field,idx])=>`${result.headers[idx]||('Column '+(idx+1))} → ${field}`);
   const unmapped=result.headers.filter((h,i)=>h&&!Object.values(result.map).includes(i)).length;
-  $('wwImportMapping').textContent=`${result.headerless?'Headerless file · profiled by content':('Header row '+result.headerRow)} · ${result.rows.length} usable · ${result.skipped} skipped (no valid phone) · ${result.duplicates} duplicates merged · ${result.generatedNames||0} names generated · ${unmapped} unmapped column(s) preserved in Raw Data · Mapping: ${mappings.join(' · ')}`;
+  $('wwImportMapping').textContent=`${result.headerless?'Headerless file · profiled by content':('Header row '+result.headerRow)} · ${result.rows.length} usable · ${result.skipped} skipped (no valid phone) · ${result.skippedNoLocation||0} skipped (no City/State, even after ZIP lookup) · ${result.locationFilled||0} City/State auto-filled from ZIP · ${result.duplicates} duplicates merged · ${result.generatedNames||0} names generated · ${unmapped} unmapped column(s) preserved in Raw Data · Mapping: ${mappings.join(' · ')}`;
   $('wwImportBody').innerHTML=result.rows.slice(0,10).map(r=>`<tr><td><b>${esc(r.name||'')}</b></td><td class="mono">${esc(r.phone||'—')}</td><td>${esc(r.email||'—')}</td><td>${esc(r.primary_trade||'—')}</td><td>${esc(r.city||'—')}</td><td>${esc(r.state||'—')}</td><td class="mono">${esc(r.zip_code||'—')}</td><td>${r.hourly_rate!=null?'$'+esc(r.hourly_rate):'—'}</td><td>${r.total_amount!=null?'$'+esc(r.total_amount):'—'}</td><td>${esc(r.payment_method||'—')}</td></tr>`).join('');
-  $('wwImportPreview').style.display='block';wwSetImportProgress(60,'Normalization complete. Phone-first validation passed; review the preview, then import.');
-  note('wwImportNotice','Pipeline ready. Phone is the only required field. Unrecognized columns are preserved in Raw Data.','success');
+  $('wwImportPreview').style.display='block';wwSetImportProgress(60,'Normalization complete. Phone + City/State validation passed; review the preview, then import.');
+  note('wwImportNotice','Pipeline ready. Phone, City and State are required — every other field is optional and unrecognized columns are preserved in Raw Data.','success');
 }
 async function prepareWorkedWithFileImport(){
   clr('wwImportNotice');const file=$('ww_import_file')?.files?.[0];if(!file){note('wwImportNotice','Choose a CSV, XLSX, or XLS file first.','error');return;}
   const ext=(file.name.split('.').pop()||'').toLowerCase();if(!['csv','xlsx','xls'].includes(ext)){note('wwImportNotice','Unsupported file type. Use CSV, XLSX, or XLS.','error');return;}
   wwSetImportProgress(8,'Reading '+file.name+'…');
   try{let aoa;if(ext==='csv')aoa=wwParseDelimited(await wwReadTextFileV1169(file));else{wwSetImportProgress(15,'Loading Excel reader…');const XLSX=await wwEnsureXlsxV1169();const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:false});aoa=wwBestWorksheetAoaV1169(XLSX,wb);}
-    wwSetImportProgress(35,'Profiling columns, locating phone data, and normalizing rows…');wwShowImportPreviewV1170(wwNormalizeTableV1170(aoa,file.name),file.name);
+    wwSetImportProgress(35,'Profiling columns, locating phone/city/state data, and normalizing rows…');wwShowImportPreviewV1170(await wwNormalizeTableV1170(aoa,file.name),file.name);
   }catch(e){console.error('Worked With import preparation failed',e);const msg=String(e?.message||e||'Unknown import error');wwSetImportProgress(0,'Import preparation failed: '+msg);note('wwImportNotice','Could not prepare '+file.name+': '+msg,'error');}
 }
 async function prepareWorkedWithGoogleSheet(){
-  clr('wwImportNotice');try{const urls=wwGoogleSheetUrlsV1169(v('ww_sheet_url'));let text='',lastErr='';wwSetImportProgress(10,'Downloading Google Sheet…');
-    for(const url of urls){try{const response=await fetch(url,{cache:'no-store',headers:{Accept:'text/csv,text/plain,*/*'}});if(!response.ok)throw new Error('HTTP '+response.status);const candidate=await response.text();if(/<!doctype html|<html/i.test(candidate))throw new Error('Google returned a sign-in page');if(candidate.trim()){text=candidate;break;}}catch(e){lastErr=String(e?.message||e);}}
-    if(!text)throw new Error('Google Sheet could not be downloaded ('+(lastErr||'network/CORS error')+'). Make it public: Anyone with the link → Viewer.');
-    wwSetImportProgress(35,'Profiling columns, locating phone data, and normalizing rows…');wwShowImportPreviewV1170(wwNormalizeTableV1170(wwParseDelimited(text),'Google Sheets'),'Google Sheets');
+  clr('wwImportNotice');try{const urls=wwGoogleSheetUrlsV1169(v('ww_sheet_url'));let text='',lastErr='',sawSignIn=false,sawNetworkError=false;wwSetImportProgress(10,'Downloading Google Sheet…');
+    for(const url of urls){
+      try{
+        const response=await fetch(url,{cache:'no-store',headers:{Accept:'text/csv,text/plain,*/*'}});
+        if(!response.ok)throw new Error('HTTP '+response.status);
+        const candidate=await response.text();
+        if(/<!doctype html|<html/i.test(candidate)){sawSignIn=true;throw new Error('Google returned a sign-in page');}
+        if(candidate.trim()){text=candidate;break;}
+      }catch(e){
+        lastErr=String(e?.message||e);
+        /* The browser reports a CORS block and a real network outage with the
+           same generic "Failed to fetch" — in practice this is almost always
+           a sheet that isn't actually public yet (most often "Anyone in your
+           organization" instead of the internet-wide "Anyone with the link"). */
+        if(/failed to fetch|networkerror|load failed/i.test(lastErr))sawNetworkError=true;
+      }
+    }
+    if(!text){
+      if(sawSignIn)throw new Error('Google asked to sign in before showing this sheet, so it is not public yet. Open the sheet → Share → General access → set it to "Anyone with the link" (Viewer) — not "Restricted" and not "Anyone in [your organization]" — then try again.');
+      if(sawNetworkError)throw new Error('The browser blocked the request before Google replied ('+lastErr+'). This almost always means the sheet is not fully public — recheck Share → General access is "Anyone with the link" and NOT limited to your organization/domain. If it still fails, use File → Share → Publish to web instead (pick the tab, format CSV) and paste that link here — it is more reliable than the regular Share link.');
+      throw new Error('Google Sheet could not be downloaded ('+(lastErr||'unknown error')+'). Make it public: Share → General access → Anyone with the link → Viewer.');
+    }
+    wwSetImportProgress(35,'Profiling columns, locating phone/city/state data, and normalizing rows…');wwShowImportPreviewV1170(await wwNormalizeTableV1170(wwParseDelimited(text),'Google Sheets'),'Google Sheets');
   }catch(e){console.error('Google Sheets import failed',e);const msg=String(e?.message||e);wwSetImportProgress(0,'Google Sheets load failed: '+msg);note('wwImportNotice',msg,'error');}
 }
 
