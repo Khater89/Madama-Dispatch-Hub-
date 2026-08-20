@@ -44,6 +44,8 @@ a:hover{text-decoration:underline}
 @media(prefers-reduced-motion:reduce){.orb{animation:none}}
 
 .app{position:relative;z-index:1;display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+.nav button.admin-only{display:none}
+body.is-admin .nav button.admin-only{display:flex}
 #authGate{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:var(--bg)}
 .user-chip{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted)}
 .user-chip b{color:var(--text)}
@@ -1587,7 +1589,8 @@ body.search-workspace-screen #parallelSearchWorkspace.focus-yelp #yelpSearchPane
     <button data-v="coverage"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/><path d="M3 19h18"/></svg>Coverage</button>
     <div class="nav-label">System</div>
     <button data-v="import"><svg viewBox="0 0 24 24"><path d="M12 4v10"/><path d="M8 10l4 4 4-4"/><path d="M4 18h16"/></svg>Import CSV</button>
-    <button data-v="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 6.6 19l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3 13.4H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 6.6l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 10 3.6V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.1 2.5"/></svg>Settings</button>
+    <button data-v="users" class="admin-only"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3.3 2.5-5.5 5.5-5.5s5.5 2.2 5.5 5.5"/><path d="M17 11l2 2 4-4"/></svg>Users</button>
+    <button data-v="settings" class="admin-only"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 6.6 19l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3 13.4H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 6.6l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 10 3.6V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.1 2.5"/></svg>Settings</button>
   </nav>
   <div class="sidefoot"><b>v11.80</b> · OPERATIONS OS<br>Supabase + OpenAI + Maps</div>
 </aside>
@@ -2061,6 +2064,28 @@ body.search-workspace-screen #parallelSearchWorkspace.focus-yelp #yelpSearchPane
     </div>
   </section>
 
+  <!-- USERS (admin only) -->
+  <section id="users" class="view">
+    <div class="card">
+      <div class="section">
+        <div><h2>Users</h2><span class="hint">Everyone who can sign in to MDAMA. Each user gets their own private work orders and Worked With list; the technician directory, Solo Tech and Yelp results stay shared.</span></div>
+        <button class="btn ghost small" type="button" onclick="loadAdminUsers(true)">Refresh</button>
+      </div>
+      <div id="usersNotice" class="notice"></div>
+      <div class="tablewrap"><table><thead><tr><th>User</th><th>Company</th><th>Role</th><th>Status</th><th>Last sign-in</th><th>Actions</th></tr></thead><tbody id="usersBody"></tbody></table></div>
+
+      <div class="section" style="margin-top:22px"><div><h3 style="margin:0">Add a user</h3><span class="hint">They can sign in immediately with the password you set here.</span></div></div>
+      <div class="grid g2">
+        <div class="field"><label>Email</label><input id="nu_email" type="email" placeholder="name@company.com"></div>
+        <div class="field"><label>Temporary password</label><input id="nu_password" type="text" placeholder="At least 8 characters"></div>
+        <div class="field"><label>Full name</label><input id="nu_name" placeholder="Optional"></div>
+        <div class="field"><label>Company name</label><input id="nu_company" placeholder="Optional"></div>
+        <div class="field"><label>Role</label><select id="nu_role"><option value="user" selected>User</option><option value="admin">Admin</option></select></div>
+      </div>
+      <button id="nuCreateBtn" class="btn primary" type="button" onclick="adminCreateUser()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Create user</button>
+    </div>
+  </section>
+
   <!-- SETTINGS -->
   <section id="settings" class="view">
     <div class="grid g2">
@@ -2411,8 +2436,8 @@ function note(id, msg, type='info'){ const e=$(id); if(!e)return; e.innerHTML='<
 function clr(id){ const e=$(id); if(e) e.className='notice'; }
 
 /* ---- navigation ---- */
-const TITLES = { dashboard:'Dashboard', newwo:'New Work Order', workorders:'My Orders', workflow:'WO Workflow', technicians:'Technicians', solotech:'Solo Tech', vendors:'Vendors', workedwith:'Worked With', coverage:'Coverage', import:'Import CSV', settings:'Settings' };
-const SUBS   = { dashboard:'Operations command center · active work, technicians and payments', newwo:'Paste once · review AI analysis · dispatch the right technician', workorders:'Booked work orders · current status · next action', workflow:'One stage at a time · arrival → diagnosis → quote → payment → completion', technicians:'Search, filter and reuse the technician network', solotech:'Fast dispatch directory · job details → call agreement → immediate assignment', vendors:'Saved vendor companies · vendor technicians · fast vendor booking', workedwith:'Previously hired resources · city matching · instant assignment', coverage:'Coverage strength by area and trade · Yelp discovery → verified network', import:'Bulk-load and maintain technician coverage', settings:'Integrations and dispatch system configuration' };
+const TITLES = { dashboard:'Dashboard', newwo:'New Work Order', workorders:'My Orders', workflow:'WO Workflow', technicians:'Technicians', solotech:'Solo Tech', vendors:'Vendors', workedwith:'Worked With', coverage:'Coverage', import:'Import CSV', users:'Users', settings:'Settings' };
+const SUBS   = { dashboard:'Operations command center · active work, technicians and payments', newwo:'Paste once · review AI analysis · dispatch the right technician', workorders:'Booked work orders · current status · next action', workflow:'One stage at a time · arrival → diagnosis → quote → payment → completion', technicians:'Search, filter and reuse the technician network', solotech:'Fast dispatch directory · job details → call agreement → immediate assignment', vendors:'Saved vendor companies · vendor technicians · fast vendor booking', workedwith:'Previously hired resources · city matching · instant assignment', coverage:'Coverage strength by area and trade · Yelp discovery → verified network', import:'Bulk-load and maintain technician coverage', users:'Add and manage who can sign in to MDAMA', settings:'Integrations and dispatch system configuration' };
 let activeViewId='dashboard';
 function stickyWOContext(){
   if(activeViewId!=='newwo')return null;
@@ -2439,6 +2464,7 @@ function updateWOStickyBrief(){
   syncWOStickyToggle();
 }
 function go(id){
+  if((id==='users'||id==='settings')&&authProfile?.role!=='admin'){id='dashboard';}
   activeViewId=id;
   if(id!=='newwo'&&searchWorkspaceExpanded){searchWorkspaceExpanded=null;syncSearchWorkspaceExpansion();}
   document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active', x.id===id));
@@ -2448,6 +2474,7 @@ function go(id){
   updateWOStickyBrief();
   if(id==='coverage') loadCoverage(false);
   if(id==='vendors') loadVendors(false);
+  if(id==='users') loadAdminUsers(false);
 }
 document.querySelectorAll('.nav button').forEach(x=>x.onclick=()=>go(x.dataset.v));
 
@@ -8433,8 +8460,69 @@ function showAuthGate(message,type){
 function renderUserChip(){
   const chip=$('userChip');if(!chip)return;
   const email=authSession?.user?.email||'';
-  const role=authProfile?.role==='admin'?' · Admin':'';
-  chip.innerHTML=email?`<b>${esc(email)}</b><span>${esc(role)}</span><button type="button" onclick="handleSignOut()">Sign out</button>`:'';
+  const isAdmin=authProfile?.role==='admin';
+  document.body.classList.toggle('is-admin',isAdmin);
+  chip.innerHTML=email?`<b>${esc(email)}</b><span>${isAdmin?' · Admin':''}</span><button type="button" onclick="handleSignOut()">Sign out</button>`:'';
+  // A non-admin who was already sitting on Users/Settings (or got demoted
+  // mid-session) gets bounced to Dashboard rather than left on a blank view.
+  if(!isAdmin&&(activeViewId==='users'||activeViewId==='settings'))go('dashboard');
+}
+
+/* ---- Admin: Users panel ---- */
+let adminUsers=[];
+async function loadAdminUsers(showNotice){
+  clr('usersNotice');
+  try{
+    const d=await fn('admin-users',{task:'list'});
+    adminUsers=d.users||[];
+    renderAdminUsers();
+    if(showNotice)note('usersNotice','Loaded '+adminUsers.length+' user(s).','success');
+  }catch(e){note('usersNotice','Could not load users: '+String(e?.message||e),'error');}
+}
+function renderAdminUsers(){
+  const body=$('usersBody');if(!body)return;
+  body.innerHTML=adminUsers.length?adminUsers.map(u=>{
+    const isSelf=authSession?.user?.id===u.id;
+    const roleBtn=u.role==='admin'
+      ?`<button class="btn ghost small" type="button" onclick="adminToggleRole('${esc(u.id)}','user')" ${isSelf?'disabled title="You cannot demote yourself here"':''}>Make user</button>`
+      :`<button class="btn ghost small" type="button" onclick="adminToggleRole('${esc(u.id)}','admin')">Make admin</button>`;
+    const activeBtn=u.active
+      ?`<button class="btn ghost small" type="button" onclick="adminSetActive('${esc(u.id)}',false)" ${isSelf?'disabled title="You cannot deactivate yourself"':''}>Deactivate</button>`
+      :`<button class="btn ghost small" type="button" onclick="adminSetActive('${esc(u.id)}',true)">Reactivate</button>`;
+    return `<tr><td><b>${esc(u.email||'—')}</b>${u.full_name?`<div class="muted">${esc(u.full_name)}</div>`:''}</td><td>${esc(u.company_name||'—')}</td><td><span class="badge ${u.role==='admin'?'b-completed':''}">${esc(u.role)}</span></td><td>${u.active?'<span class="badge b-completed">Active</span>':'<span class="badge">Inactive</span>'}</td><td class="mono">${u.last_sign_in_at?new Date(u.last_sign_in_at).toLocaleString():'Never'}</td><td class="actions">${roleBtn} ${activeBtn} <button class="btn ghost small" type="button" onclick="adminResetPassword('${esc(u.id)}')">Reset password</button></td></tr>`;
+  }).join(''):`<tr><td colspan="6">${emptyState('No users yet','Add the first one below.')}</td></tr>`;
+}
+async function adminCreateUser(){
+  clr('usersNotice');
+  const email=v('nu_email'),password=v('nu_password'),fullName=v('nu_name'),companyName=v('nu_company'),role=v('nu_role')||'user';
+  if(!email||!password){note('usersNotice','Email and password are required.','error');return;}
+  if(password.length<8){note('usersNotice','Password must be at least 8 characters.','error');return;}
+  const btn=$('nuCreateBtn'),original=btn.textContent;btn.disabled=true;btn.textContent='Creating…';
+  try{
+    await fn('admin-users',{task:'create',email,password,full_name:fullName||null,company_name:companyName||null,role});
+    note('usersNotice','User '+email+' created. They can sign in with the password you set.','success');
+    ['nu_email','nu_password','nu_name','nu_company'].forEach(id=>{if($(id))$(id).value='';});
+    if($('nu_role'))$('nu_role').value='user';
+    await loadAdminUsers(false);
+  }catch(e){note('usersNotice','Could not create user: '+String(e?.message||e),'error');}
+  finally{btn.disabled=false;btn.textContent=original;}
+}
+async function adminToggleRole(id,role){
+  if(!confirm('Change this user to "'+role+'"?'))return;
+  try{await fn('admin-users',{task:'update_role',id,role});await loadAdminUsers(false);}
+  catch(e){note('usersNotice','Could not change role: '+String(e?.message||e),'error');}
+}
+async function adminSetActive(id,active){
+  if(!confirm(active?'Reactivate this user?':'Deactivate this user? They will be signed out and unable to log back in until reactivated.'))return;
+  try{await fn('admin-users',{task:'set_active',id,active});await loadAdminUsers(false);}
+  catch(e){note('usersNotice','Could not update status: '+String(e?.message||e),'error');}
+}
+async function adminResetPassword(id){
+  const password=prompt('Enter a new password for this user (at least 8 characters):');
+  if(!password)return;
+  if(password.length<8){note('usersNotice','Password must be at least 8 characters.','error');return;}
+  try{await fn('admin-users',{task:'reset_password',id,password});note('usersNotice','Password reset.','success');}
+  catch(e){note('usersNotice','Could not reset password: '+String(e?.message||e),'error');}
 }
 async function loadAuthProfile(){
   try{
