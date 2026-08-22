@@ -1,0 +1,9 @@
+{
+  "findings": [],
+  "missingTables": [],
+  "consoleMsgs": [],
+  "netCalls": [
+    "edge https://vuwdhcyiifyarveeqlwz.supabase.co/functions/v1/ai-assist",
+    "EXTERNAL https://api.zippopotam.us/us/10118"
+  ]
+}

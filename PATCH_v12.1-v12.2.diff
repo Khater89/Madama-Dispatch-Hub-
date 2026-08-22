@@ -1,0 +1,556 @@
+--- Madama-Dispatch-Hub--main/index.html	2026-08-20 07:52:08.000000000 +0000
++++ fixed/index.html	2026-08-22 04:34:30.153117663 +0000
+@@ -2912,8 +2912,8 @@
+ function renderLiveSearchDb(){const body=$('liveDbBody');if(!body)return;if(!liveSearchDbReady){body.innerHTML='<tr><td colspan="8">'+emptyState('Live Search DB is not installed','Run sql/23_live_search_db_v11_19.sql once.')+'</td></tr>';return;}body.innerHTML=liveSearchDbTechs.length?liveSearchDbTechs.map(t=>{const u=f(t,'source_url');return `<tr><td><b>${esc(tname(t))}</b></td><td class="mono">${esc(f(t,'phone','normalized_phone')||'—')}</td><td>${esc(f(t,'trade')||'—')}</td><td>${esc([f(t,'city'),f(t,'state')].filter(Boolean).join(', ')||'—')}</td><td>${esc(f(t,'platform')||'—')}</td><td>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">Open source ↗</a>`:'—'}</td><td>${esc(f(t,'created_at')?new Date(f(t,'created_at')).toLocaleDateString():'—')}</td><td><button class="btn primary small" onclick="useLiveDbTech('${esc(f(t,'id'))}')">Start Hiring</button> <button class="btn fast-hire-btn small" onclick="openFastHireLiveDb('${esc(f(t,'id'))}')">Fast Hire</button> <button class="btn danger small" onclick="deleteLiveDbTech('${esc(f(t,'id'))}')">Delete</button></td></tr>`;}).join(''):'<tr><td colspan="8">'+emptyState('Live Search DB is empty','Use ADD TO LIVE SEARCH DB on a live result.')+'</td></tr>';}
+ 
+ /* ---- company-trained document classification + extraction ---- */
+-const WO_LABELS=['Job','Commitment Date & Time','Commitment Date and Time','Commitment','Job Type','ExternalID','External ID','Ext. ID','Record Type','Alert Status','Special Handling','Special Instructions','Region','TZ','Time Zone','Timezone','Customer Name','Client Name','Customer','WRID','Location Contact','Best Contact','Contact Number','Contact Phone','Best Contact Phone','Turf','Service Address','Full Address','Address','Reject','Summary','Description','Reported Issue','Reported issue','Issue','Requested Scope','Scope of Work','SOW','Store','Store Name','Location Name','Store #','Store Number','Store No.','NTE','Status','Amount due','Incurred','Total cost','Payment method','WO','WO #','WO Number','Work Order'];
+-const normLabel=x=>String(x||'').replace(/[:#]/g,'').replace(/\s+/g,' ').trim().toLowerCase();
++const WO_LABELS=['Job','Commitment Date & Time','Commitment Date and Time','Commitment','Job Type','ExternalID','External ID','Ext. ID','Record Type','Alert Status','Special Handling','Special Instructions','Region','TZ','Time Zone','Timezone','Customer Name','Client Name','Customer','WRID','Location Contact','Best Contact','Contact Number','Contact Phone','Best Contact Phone','Turf','Service Address','Full Address','Address','Reject','Summary','Description','Reported Issue','Reported issue','Issue','Requested Scope','Scope of Work','SOW','Store','Store Name','Location Name','Store #','Store Number','Store No.','NTE','Status','Amount due','Incurred','Total cost','Payment method','WO','WO #','WO No.','WO Number','Work Order','Work Order #','Work Order Number','Work Order No.','Not To Exceed','Not-To-Exceed','NTE Amount'];
++const normLabel=x=>String(x||'').replace(/:/g,'').replace(/#/g,' number ').replace(/\bno\.(?=\s*$)/i,' number ').replace(/\s+/g,' ').trim().toLowerCase();
+ function labelValue(text,names){
+   const targets=new Set(names.map(normLabel)),known=new Set(WO_LABELS.map(normLabel)),lines=String(text||'').split(/\r?\n/);
+   for(let i=0;i<lines.length;i++){
+@@ -3109,7 +3109,7 @@
+   let tr=''; for(const[n,r]of rules)if(r.test(x)){tr=n;break;}
+   const eta=(s.match(/\b(P4|P24|P48|P72|P5|P30|ND10)\b/i)||[])[1]?.toUpperCase()||'';
+   const external=labelValue(s,['ExternalID','External ID']);
+-  const won=labelValue(s,['WO #','WO Number','WO','Work Order'])||(s.match(/\b(\d{7}-\d{8})\b/)||[])[1]||external;
++  const won=labelValue(s,['WO #','WO Number','WO No.','WO','Work Order','Work Order #','Work Order Number','Work Order No.'])||(s.match(/\b(\d{7}-\d{8})\b/)||[])[1]||external;
+   const address=labelValue(s,['Service Address','Full Address','Address']);
+   const ap=splitUSAddress(address);
+   const sow=multilineValue(s,['Scope of Work','SOW']);
+@@ -3118,6 +3118,9 @@
+   const phone=labelValue(s,['Contact Number','Contact Phone','Best Contact Phone']);
+   const requester=(s.match(/\bRequest(?:or|er)\s*:\s*([^\n]+)/i)||[])[1]?.trim()||'';
+   const noc=(s.match(/\b(?:NOC|call)\b[^\n]*?((?:\+?1[\s.-]*)?\(?\d{3}\)?[\s.-]*\d{3}[\s.-]*\d{4}(?:\s*(?:ext\.?|x)\s*\d+)?)/i)||[])[1]?.trim()||'';
++  const nteText=labelValue(s,['NTE','Not To Exceed','Not-To-Exceed','NTE Amount']);
++  const nteMatch=String(nteText||'').match(/-?[\d,]+(?:\.\d+)?/)||s.match(/\bNTE\b[^\n\d$]{0,15}\$?\s*([\d,]+(?:\.\d+)?)/i);
++  const nteNumber=nteMatch?Number(String(nteMatch[1]??nteMatch[0]).replace(/,/g,'')):NaN;
+   const prdata=dtype==='payment_request'?{status:labelValue(s,['Status']),nte:labelValue(s,['NTE']),amount_due:labelValue(s,['Amount due']),incurred:labelValue(s,['Incurred']),total_cost:labelValue(s,['Total cost']),payment_method:labelValue(s,['Payment method'])}:null;
+   const requiredOnHand=[];const requiredEvidence=['Technical diagnosis and repair plan','Manager sign-off confirmation after completion'];
+   if(tr==='HVAC'||tr==='Appliance Repair'){requiredOnHand.push('Ladder');}
+@@ -3127,7 +3130,7 @@
+   const techSummary=technicianFacingSummary({trade:tr,description:sourceSummary,sow,special_instructions:labelValue(s,['Special Instructions','Special Handling'])});
+   const dispatch_brief={issue_summary:techSummary,recommended_trade:tr,hiring_questions:['Can you handle this commercial repair?','Do you provide a free estimate?','What is your distance and ETA?','What is your assessment fee and payment method?'],required_on_hand:requiredOnHand,required_evidence:requiredEvidence,dispatch_notes:['Do not reveal the complete address until Hiring requirements are accepted.','No repair and no onsite price discussion before approval.']};
+   const summary=techSummary;
+-  return {document_type:dtype,confidence:.55,wo_number:won,external_id:external,job_type:labelValue(s,['Job Type']),commitment_at:commitment,record_type:labelValue(s,['Record Type']),alert_status:labelValue(s,['Alert Status']),special_handling:labelValue(s,['Special Handling']),region:labelValue(s,['Region']),timezone:labelValue(s,['TZ','Time Zone','Timezone']),client_name:labelValue(s,['Customer Name','Client Name','Customer']),store_name:labelValue(s,['Store Name','Location Name','Store']),store_number:labelValue(s,['Store #','Store Number']),wrid:labelValue(s,['WRID']),location_contact:contact,contact_number:phone,turf:labelValue(s,['Turf']),requester,noc_phone:noc,trade:tr,description:sourceSummary,priority:/\b(?:EMG|P4)\b/i.test(s)?'emergency':'normal',eta_code:eta,full_address:address,street:ap.street,city:ap.city,state:ap.state,zip_code:ap.zip_code,best_contact:contact,best_contact_phone:phone,sow,summary,problem_explanation_ar:conciseArabicExplanation(s,sow,summary,tr),special_instructions:labelValue(s,['Special Instructions','Special Handling']),nte:null,payment_request:prdata,dispatch_brief,extracted_fields:{}};
++  return {document_type:dtype,confidence:.55,wo_number:won,external_id:external,job_type:labelValue(s,['Job Type']),commitment_at:commitment,record_type:labelValue(s,['Record Type']),alert_status:labelValue(s,['Alert Status']),special_handling:labelValue(s,['Special Handling']),region:labelValue(s,['Region']),timezone:labelValue(s,['TZ','Time Zone','Timezone']),client_name:labelValue(s,['Customer Name','Client Name','Customer']),store_name:labelValue(s,['Store Name','Location Name','Store']),store_number:labelValue(s,['Store #','Store Number','Store No.']),wrid:labelValue(s,['WRID']),location_contact:contact,contact_number:phone,turf:labelValue(s,['Turf']),requester,noc_phone:noc,trade:tr,description:sourceSummary,priority:/\b(?:EMG|P4)\b/i.test(s)?'emergency':'normal',eta_code:eta,full_address:address,street:ap.street,city:ap.city,state:ap.state,zip_code:ap.zip_code,best_contact:contact,best_contact_phone:phone,sow,summary,problem_explanation_ar:conciseArabicExplanation(s,sow,summary,tr),special_instructions:labelValue(s,['Special Instructions','Special Handling']),nte:Number.isFinite(nteNumber)&&nteNumber>0?nteNumber:null,payment_request:prdata,dispatch_brief,extracted_fields:{}};
+ }
+ function setField(id,value){ if($(id)&&value!==null&&value!==undefined&&value!=='') $(id).value=String(value); }
+ function setDateTimeField(id,value){
+@@ -3138,6 +3141,7 @@
+   setField('won',a.wo_number); setField('externalid',a.external_id); setField('clientname',a.client_name);
+   setField('jobtype',a.job_type); setField('recordtype',a.record_type); setField('alertstatus',a.alert_status); setDateTimeField('commitment',a.commitment_at||a.commitment_date_time); setField('specialhandling',a.special_handling);
+   setField('storename',a.store_name); setField('storenumber',a.store_number);
++  setField('nte',(a.nte!==null&&a.nte!==undefined&&a.nte!=='')?String(a.nte):'');
+   setField('trade',a.trade); $('prio').value=a.priority==='emergency'?'emergency':'normal';
+   setField('etacode',a.eta_code); setField('fulladdress',a.full_address); setField('street',a.street);
+   setField('city',a.city); setField('state',a.state?String(a.state).toUpperCase():''); setField('zip',a.zip_code);
+@@ -3182,6 +3186,10 @@
+         d=await fn('ai-assist',{task:'analyze',raw_wo_text:raw});
+         if(d?.error)throw new Error(d.error);
+         a=d.analysis||d;
++        // v12.1: a 200 response with an unusable body used to be accepted as a
++        // valid analysis and silently blanked the whole form. Require the shape.
++        if(!a||typeof a!=='object'||!('document_type' in a||'trade' in a||'wo_number' in a))
++          throw new Error('ai-assist returned an unusable analysis payload');
+         usedAI=d?.source==='openai';
+       }catch(aiErr){
+         a=localAnalyze(raw);
+@@ -3190,7 +3198,10 @@
+       a=await ensureArabicExplanation(a,raw);
+       applyTechnicianFacingSummary(a,raw);
+       const manualNte=v('nte');
+-      fillFields(a); if(!editingWoId)$('nte').value=manualNte;
++      fillFields(a);
++      // v12.1: a value typed by the dispatcher still wins, but a blank box no
++      // longer erases the NTE that Analyze just extracted from the WO text.
++      if(!editingWoId&&manualNte)$('nte').value=manualNte;
+       window._lastAnalysis=a; lastAnalyzedRaw=raw; aiHiringQuestions=null; aiProblemSummary='';
+       $('dtype').value=a.document_type||'work_order'; documentTypeChanged(); updateWOStickyBrief();
+       let msg='WO analyzed successfully. Technician Job Summary is ready and can be used for outreach.';
+@@ -4517,7 +4528,10 @@
+ function collectQuoteItems(kind){return Array.from(document.querySelectorAll(`.quote-line[data-qkind="${kind}"]`)).map(card=>{const get=k=>card.querySelector(`[data-qk="${k}"]`)?.value?.trim()??'';if(kind==='shipping')return {id:card.dataset.qid,description:get('description'),amount:get('amount')===''?'':Number(get('amount'))};const item={id:card.dataset.qid,description:get('description'),quantity:get('quantity')===''?'':Number(get('quantity')),unit_cost:get('unit_cost')===''?'':Number(get('unit_cost'))};if(card.dataset.qsource)item.source_diagnosis_id=card.dataset.qsource;if(kind==='parts')item.sales_tax=get('sales_tax')===''?0:Number(get('sales_tax'));return item;});}
+ function collectQuoteBuilder(){return {diagnosis_signature:diagnosisQuoteSignature(stageData('diagnosis')),tech_report:v('q_tech_report'),nb:v('q_nb'),required_to:v('q_required_to'),main_rate:asNumber('q_main_rate'),helper_rate:asNumber('q_helper_rate'),trip_amount:asNumber('q_trip'),assessment_main_hours:asNumber('q_assess_main'),assessment_helper_hours:asNumber('q_assess_helper'),repair_main_hours:asNumber('q_repair_main'),repair_helper_hours:asNumber('q_repair_helper'),markup:asNumber('q_markup'),parts:collectQuoteItems('parts'),materials:collectQuoteItems('materials'),equipment:collectQuoteItems('equipment'),shipping:collectQuoteItems('shipping')};}
+ function quoteCalc(data){
+-  const mainRate=moneyValue(data.main_rate),helperRate=moneyValue(data.helper_rate),markup=data.markup===null?0:Number(data.markup||0);
++  const mainRate=moneyValue(data.main_rate),helperRate=moneyValue(data.helper_rate);
++  /* v12.1: a blank/invalid markup means "no markup" (x1). It must never be x0,
++     which silently erased every Part/Material line from the quote total. */
++  const rawMarkup=Number(data.markup),markup=Number.isFinite(rawMarkup)&&rawMarkup>0?rawMarkup:1;
+   const trip=moneyValue(data.trip_amount),assessmentMain=moneyValue(data.assessment_main_hours)*mainRate,assessmentHelper=moneyValue(data.assessment_helper_hours)*helperRate,repairMain=moneyValue(data.repair_main_hours)*mainRate,repairHelper=moneyValue(data.repair_helper_hours)*helperRate;
+   const pmLine=(x,kind='materials')=>(moneyValue(x.quantity||1)*moneyValue(x.unit_cost)+(kind==='parts'?moneyValue(x.sales_tax):0))*markup,equipmentLine=x=>moneyValue(x.quantity||1)*moneyValue(x.unit_cost),shippingLine=x=>moneyValue(x.amount);
+   const parts=(data.parts||[]).reduce((a,x)=>a+pmLine(x,'parts'),0),materials=(data.materials||[]).reduce((a,x)=>a+pmLine(x,'materials'),0),equipment=(data.equipment||[]).reduce((a,x)=>a+equipmentLine(x),0),shipping=(data.shipping||[]).reduce((a,x)=>a+shippingLine(x),0);
+@@ -4525,7 +4539,7 @@
+   return {mainRate,helperRate,markup,trip,assessmentMain,assessmentHelper,repairMain,repairHelper,incurred,repair,parts,materials,partsMaterials,equipment,shipping,total:incurred+repair+partsMaterials+equipment+shipping,pmLine,equipmentLine,shippingLine};
+ }
+ function updateQuoteTotals(){
+-  if(!$('q_main_rate'))return;const d=collectQuoteBuilder(),c=quoteCalc(d),markup=(d.markup===null||!Number.isFinite(Number(d.markup)))?0:Number(d.markup);
++  if(!$('q_main_rate'))return;const d=collectQuoteBuilder(),c=quoteCalc(d),markup=c.markup;
+   document.querySelectorAll('.quote-line').forEach(card=>{const kind=card.dataset.qkind,totalEl=card.querySelector('[data-qtotal]');if(!totalEl)return;const get=k=>card.querySelector(`[data-qk="${k}"]`)?.value||0;let n=0;if(kind==='shipping')n=moneyValue(get('amount'));else{n=moneyValue(get('quantity')||1)*moneyValue(get('unit_cost'));if(kind==='parts')n+=moneyValue(get('sales_tax'));if(kind==='parts'||kind==='materials')n*=markup;}totalEl.textContent='$'+smartMoney(n);});
+   const map={q_sum_incurred:c.incurred,q_sum_repair:c.repair,q_sum_parts:c.parts,q_sum_materials:c.materials,q_sum_equipment:c.equipment,q_sum_shipping:c.shipping,q_sum_total:c.total,q_sum_total_bottom:c.total,q_preview_incurred:c.incurred,q_preview_repair:c.repair,q_preview_pm:c.partsMaterials,q_preview_other:c.equipment+c.shipping};Object.entries(map).forEach(([id,n])=>{if($(id))$(id).textContent='$'+smartMoney(n);});
+ }
+@@ -4535,7 +4549,8 @@
+   if(!splitPlanLines(data.required_to).length)issues.push('Required to');
+   if((moneyValue(data.assessment_main_hours)>0||moneyValue(data.repair_main_hours)>0)&&c.mainRate<=0)issues.push('Main Tech Rate from TL');
+   if((moneyValue(data.assessment_helper_hours)>0||moneyValue(data.repair_helper_hours)>0)&&c.helperRate<=0)issues.push('Helper Tech Rate from TL');
+-  if(((data.parts||[]).length||(data.materials||[]).length)&&c.markup<=0)issues.push('Parts / Materials markup from TL');
++  const markupEntered=Number(data.markup);
++  if(((data.parts||[]).length||(data.materials||[]).length)&&!(Number.isFinite(markupEntered)&&markupEntered>0))issues.push('Parts / Materials markup from TL');
+   for(const [label,items] of [['Part',data.parts||[]],['Material',data.materials||[]],['Equipment',data.equipment||[]]])items.forEach((x,i)=>{if(!String(x.description||'').trim()||moneyValue(x.quantity)<=0||moneyValue(x.unit_cost)<=0)issues.push(`${label} ${i+1}`);});
+   (data.shipping||[]).forEach((x,i)=>{if(!String(x.description||'').trim()||moneyValue(x.amount)<=0)issues.push(`Special fee ${i+1}`);});
+   if(c.total<=0)issues.push('Quote total');
+@@ -6897,12 +6912,22 @@
+   const d=dataForWO(woId,'diagnosis')||{};
+   return Math.max(0,moneyValue(d.technician_total_cost)+moneyValue(d.helper_total_cost));
+ }
++/* v12.1: Amount Due is clamped at 0. v11.36/v11.37 clamped it and v11.55
++   dropped the clamp, which let a WO whose Diagnosis Incurred rows exceed the
++   agreed Tech/Helper cost write a NEGATIVE amount_due to payment_requests and
++   print a negative figure on the payment document. */
++function finalPaymentOverdrawV1211(woId){
++  const total=finalPaymentAgreedTotal(woId),incurred=finalPaymentDiagnosisBreakdown(woId).total;
++  return incurred>total?incurred-total:0;
++}
+ function applyFinalPaymentFormulaV1155(){
+   if(paymentOpenMode!=='final'||v('ppurpose')!=='job_done')return;
+   const total=finalPaymentAgreedTotal(paymentWOId);
+   const diagnosisIncurred=finalPaymentDiagnosisBreakdown(paymentWOId);
+   const incurred=diagnosisIncurred.total;
+-  const amountDue=total-incurred;
++  const amountDue=Math.max(0,total-incurred);
++  const overdraw=incurred-total;
++  if(overdraw>0)note('paynotice','Diagnosis Incurred ($'+moneyDisplay(incurred)+') is larger than the agreed Tech / Helper cost ($'+moneyDisplay(total)+'). Amount Due is held at $0 — correct the Diagnosis Incurred rows or the agreed cost before sending this request.','error');
+   if($('pay_agreed_total'))$('pay_agreed_total').value=total.toFixed(2);
+   if($('ptotal'))$('ptotal').value=total.toFixed(2);
+   if($('pincurred'))$('pincurred').value=incurred.toFixed(2);
+@@ -6953,7 +6978,8 @@
+     const incurred=diagnosisIncurred.total;
+     p.total_cost=total;
+     p.incurred=incurred;
+-    p.amount_due=total-incurred;
++    p.amount_due=Math.max(0,total-incurred);            // v12.1: never negative
++    p.amount_over_agreed=Math.max(0,incurred-total);    // v12.1: keep the overage visible
+     p.incurred_breakdown=diagnosisIncurred.text;
+     p.payment_cost_breakdown={main_technician:moneyValue(costs.technician_total_cost),helper_technician:moneyValue(costs.helper_total_cost),agreed_total:total};
+   }
+@@ -6969,12 +6995,12 @@
+ const _v1155RenderWorkflowPayments=renderWorkflowPayments;
+ renderWorkflowPayments=function(){
+   if(!workflowWOId)return _v1155RenderWorkflowPayments();
+-  const wo=workflowWO(),rows=paymentsForWO(workflowWOId),incurred=finalPaymentDiagnosisBreakdown(workflowWOId),total=finalPaymentAgreedTotal(workflowWOId),amountDue=total-incurred.total,finalSaved=rows.some(p=>String(f(p,'status'))==='work_done'),assigned=techs.find(t=>String(f(t,'id'))===String(f(wo,'assigned_technician_id'))),name=assigned?tname(assigned):'the technician',script=dialogueCard('REAL PAYMENT CONFIRMATION',[
++  const wo=workflowWO(),rows=paymentsForWO(workflowWOId),incurred=finalPaymentDiagnosisBreakdown(workflowWOId),total=finalPaymentAgreedTotal(workflowWOId),amountDue=Math.max(0,total-incurred.total),overdraw=Math.max(0,incurred.total-total),finalSaved=rows.some(p=>String(f(p,'status'))==='work_done'),assigned=techs.find(t=>String(f(t,'id'))===String(f(wo,'assigned_technician_id'))),name=assigned?tname(assigned):'the technician',script=dialogueCard('REAL PAYMENT CONFIRMATION',[
+     ['Dispatcher',`Hi ${name}, all required completion documents have been verified. Please confirm your preferred payment method and the correct payment details.`],
+     ['Technician','Confirm the payment method and account details.','tech'],
+     ['Dispatcher','I am submitting the final payment request for the remaining amount due.']
+   ]);
+-  $('stageContent').innerHTML=`<h3>Final Payment Request</h3><div class="stage-copy">Final Payment is calculated only from the agreed Tech / Helper cost and the current Incurred rows saved in Diagnosis. Earlier Payment Requests do not increase Incurred unless their value still exists in Diagnosis.</div>${script}<div class="gate ${currentWorkflowStatus(wo)==='work_done'?'ok':''}">${currentWorkflowStatus(wo)==='work_done'?'Work Done evidence is complete — final payment is unlocked.':'Complete Work Done first.'}</div><div class="brief-box" style="margin-top:14px"><b>Agreed total: $${esc(moneyDisplay(total))} · Diagnosis Incurred: $${esc(moneyDisplay(incurred.total))} · Amount Due: $${esc(moneyDisplay(amountDue))}</b><div class="muted" style="font-size:11px;margin-top:5px">${esc(incurred.text||'No Incurred items in Diagnosis.')}</div></div><div style="margin:14px 0"><b>${rows.length} total Payment Request(s) saved</b></div><div class="stage-actions" style="justify-content:flex-start"><button class="btn primary" onclick="openPayment('${esc(workflowWOId)}','final')">Create / view Final Payment</button>${finalSaved?`<button class="btn success" onclick="workflowStageView='final_report';renderWorkflow()">Continue to Final Report</button>`:''}</div>${finalSaved?'<div class="gate ok" style="margin-top:14px">Final Payment is saved. Continue to the last stage to review, edit, generate, and print the complete report.</div>':''}`;
++  $('stageContent').innerHTML=`<h3>Final Payment Request</h3><div class="stage-copy">Final Payment is calculated only from the agreed Tech / Helper cost and the current Incurred rows saved in Diagnosis. Earlier Payment Requests do not increase Incurred unless their value still exists in Diagnosis.</div>${script}<div class="gate ${currentWorkflowStatus(wo)==='work_done'?'ok':''}">${currentWorkflowStatus(wo)==='work_done'?'Work Done evidence is complete — final payment is unlocked.':'Complete Work Done first.'}</div><div class="brief-box" style="margin-top:14px"><b>Agreed total: $${esc(moneyDisplay(total))} · Diagnosis Incurred: $${esc(moneyDisplay(incurred.total))} · Amount Due: $${esc(moneyDisplay(amountDue))}</b>${overdraw>0?`<div class="gate" style="margin-top:8px">Diagnosis Incurred exceeds the agreed cost by $${esc(moneyDisplay(overdraw))}. Fix the Diagnosis Incurred rows or the agreed Tech / Helper cost before requesting the final payment.</div>`:''}<div class="muted" style="font-size:11px;margin-top:5px">${esc(incurred.text||'No Incurred items in Diagnosis.')}</div></div><div style="margin:14px 0"><b>${rows.length} total Payment Request(s) saved</b></div><div class="stage-actions" style="justify-content:flex-start"><button class="btn primary" onclick="openPayment('${esc(workflowWOId)}','final')">Create / view Final Payment</button>${finalSaved?`<button class="btn success" onclick="workflowStageView='final_report';renderWorkflow()">Continue to Final Report</button>`:''}</div>${finalSaved?'<div class="gate ok" style="margin-top:14px">Final Payment is saved. Continue to the last stage to review, edit, generate, and print the complete report.</div>':''}`;
+ };
+ 
+ 
+@@ -9356,5 +9382,403 @@
+ 
+ document.addEventListener('DOMContentLoaded',()=>{initSidebarV1174();requestAnimationFrame(enhanceStageUXV1174);['won','trade','fulladdress','street','city','state','zip','summary','sow'].forEach(id=>$(id)?.addEventListener('input',updateWOStickyBrief));updateWOStickyBrief();});
+ 
++
++/* ========================================================================
++   MDAMA v12.2 — workflow UX + data-integrity patch
++   Loads last, so every override here wins over the earlier V11xx layers.
++
++   1  Fast-Hire "book" button no longer renders as a highlighted CTA.
++   2  Per-stage required-field validation that names AND points at the field.
++   3  Every visible field in a stage is actually persisted on Save.
++   7  Materials and Other Special Fees added to Diagnosis, in Quote order.
++   8  Visible confirmation when Save and SYNCHRONIZE succeed.
++   ======================================================================== */
++
++/* ---------- shared styling for the new behaviours ---------- */
++(function injectV122Styles(){
++  if(document.getElementById('mdamaV122Styles'))return;
++  const css=document.createElement('style');
++  css.id='mdamaV122Styles';
++  css.textContent=`
++  /* 1 — neutralise the Fast Hire booking highlight */
++  .fast-hire-btn{
++    border-color:var(--line,#c1ccd5)!important;
++    background:var(--btn-bg,#f4f6f8)!important;
++    color:var(--fg,#17202a)!important;
++    box-shadow:none!important;
++    background-image:none!important;
++  }
++  /* 2 — field-level error marking */
++  .v122-invalid,
++  .v122-invalid input,.v122-invalid select,.v122-invalid textarea{
++    border-color:#dc2626!important;
++    box-shadow:0 0 0 2px rgba(220,38,38,.16)!important;
++  }
++  .v122-invalid > label{color:#dc2626!important}
++  .v122-field-msg{
++    color:#dc2626;font-size:11px;margin-top:5px;display:block;font-weight:600;
++  }
++  .v122-focus-ring{animation:v122Ring 1.5s ease-out 1}
++  @keyframes v122Ring{
++    0%{box-shadow:0 0 0 0 rgba(220,38,38,.42)}
++    70%{box-shadow:0 0 0 9px rgba(220,38,38,0)}
++    100%{box-shadow:0 0 0 0 rgba(220,38,38,0)}
++  }
++  /* 8 — save / sync confirmation */
++  .v122-saved{
++    background:#0f9d76!important;border-color:#0f9d76!important;color:#fff!important;
++    transition:background .18s ease,border-color .18s ease;
++  }
++  .v122-toast{
++    position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(14px);
++    background:#0f9d76;color:#fff;font-weight:600;font-size:13px;
++    padding:11px 20px;border-radius:9px;box-shadow:0 8px 26px rgba(15,157,118,.32);
++    z-index:9999;opacity:0;pointer-events:none;
++    transition:opacity .22s ease,transform .22s ease;
++  }
++  .v122-toast.err{background:#dc2626;box-shadow:0 8px 26px rgba(220,38,38,.32)}
++  .v122-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
++  `;
++  document.head.appendChild(css);
++})();
++
++/* ---------- 8: visible save / sync confirmation ---------- */
++let _v122ToastTimer=null;
++function toastV122(message,kind='ok'){
++  let el=document.getElementById('v122Toast');
++  if(!el){
++    el=document.createElement('div');
++    el.id='v122Toast';
++    el.className='v122-toast';
++    document.body.appendChild(el);
++  }
++  el.textContent=message;
++  el.className='v122-toast'+(kind==='err'?' err':'')+' show';
++  clearTimeout(_v122ToastTimer);
++  _v122ToastTimer=setTimeout(()=>{el.className='v122-toast'+(kind==='err'?' err':'');},2600);
++}
++
++/* Flash the button the user actually clicked. */
++function flashButtonV122(btn,label){
++  if(!btn)return;
++  const originalText=btn.textContent,originalClass=btn.className;
++  btn.classList.add('v122-saved');
++  btn.textContent=label;
++  setTimeout(()=>{btn.className=originalClass;btn.textContent=originalText;},1500);
++}
++function activeButtonV122(){
++  const el=document.activeElement;
++  return el&&el.tagName==='BUTTON'?el:null;
++}
++
++/* ---------- 2: per-stage required-field rules ---------- */
++/* Each rule: {id, label, kind}. `kind` decides how "empty" is judged.
++   `files` rules are checked against the uploaded-file index, not the DOM. */
++const STAGE_RULES_V122={
++  arrival:[
++    {id:'a_time_date',label:'Actual arrival date'},
++    {id:'a_time_time',label:'Actual arrival time'},
++    {kind:'files',stage:'arrival',type:'arrival_photo',min:1,
++     anchor:'arrival_photo_input',label:'Arrival Photo (1 required)'}
++  ],
++  diagnosis:[
++    {id:'d_problem',label:'Exact problem found'},
++    {id:'d_plan',label:'Repair plan / what the tech will do'},
++    {kind:'files',stage:'diagnosis',type:'before_photo',min:4,
++     anchor:'before_photos_input',label:'Before Photos (4 required)'}
++  ],
++  completion:[
++    {id:'c_done_at_date',label:'Work completion date'},
++    {id:'c_done_at_time',label:'Work completion time'},
++    {id:'c_after_photos_ok',label:'After-photos confirmation',kind:'check'},
++    {id:'c_manager_ok',label:'Manager confirmation',kind:'check'},
++    {id:'c_signoff_ok',label:'Sign-off confirmation',kind:'check'},
++    {kind:'files',stage:'completion',type:'after_photo',min:4,
++     anchor:'after_photos_input',label:'After Photos (4 required)'}
++  ]
++};
++
++/* Item-level rules for the repeating Diagnosis cards. */
++const DIAG_ITEM_RULES_V122={
++  parts:[['part_trade','Part Trade'],['part_type','Part Type'],['name','Part name'],
++         ['brand_model','Brand / model'],['specs','Technical specs'],
++         ['quantity','Quantity'],['unit_price','Unit price']],
++  equipment:[['name','Equipment name'],['possession_type','Possession type'],['cost','Equipment cost']],
++  materials:[['name','Material name'],['quantity','Quantity'],['unit_price','Unit price']],
++  shipping:[['name','Fee description'],['amount','Fee amount']]
++};
++
++function clearFieldErrorsV122(){
++  document.querySelectorAll('.v122-invalid').forEach(el=>el.classList.remove('v122-invalid'));
++  document.querySelectorAll('.v122-field-msg').forEach(el=>el.remove());
++}
++
++function markFieldErrorV122(el,message){
++  if(!el)return null;
++  const holder=el.closest('.field')||el.closest('.brief-box')||el.parentElement||el;
++  holder.classList.add('v122-invalid');
++  if(!holder.querySelector('.v122-field-msg')){
++    const msg=document.createElement('span');
++    msg.className='v122-field-msg';
++    msg.textContent=message;
++    holder.appendChild(msg);
++  }
++  return holder;
++}
++
++/* Returns {ok, missing:[labels], first:Element} */
++function validateStageV122(stage){
++  clearFieldErrorsV122();
++  const rules=STAGE_RULES_V122[stage]||[];
++  const missing=[];
++  let first=null;
++
++  for(const rule of rules){
++    let empty=false,anchor=null;
++    if(rule.kind==='files'){
++      const have=filesFor(rule.stage,rule.type).length;
++      empty=have<(rule.min||1);
++      anchor=document.getElementById(rule.anchor);
++    }else{
++      const el=document.getElementById(rule.id);
++      anchor=el;
++      if(!el)continue;                                   // field not rendered in this variant
++      empty=rule.kind==='check'?!el.checked:!String(el.value||'').trim();
++    }
++    if(empty){
++      missing.push(rule.label);
++      const holder=markFieldErrorV122(anchor,'Required — '+rule.label);
++      if(!first)first=holder||anchor;
++    }
++  }
++
++  /* repeating Diagnosis cards */
++  if(stage==='diagnosis'){
++    for(const [kind,fields] of Object.entries(DIAG_ITEM_RULES_V122)){
++      const cards=document.querySelectorAll(`.diag-item[data-kind="${kind}"]`);
++      cards.forEach((card,i)=>{
++        for(const [key,label] of fields){
++          const el=card.querySelector(`[data-k="${key}"]`);
++          if(!el)continue;
++          const val=String(el.value||'').trim();
++          const numeric=['quantity','unit_price','cost','amount'].includes(key);
++          const bad=numeric?(val===''||!(Number(val)>0)):val==='';
++          if(bad){
++            const nice=`${kind==='shipping'?'Special fee':kind.replace(/s$/,'')} ${i+1} — ${label}`;
++            missing.push(nice);
++            const holder=markFieldErrorV122(el,'Required — '+label);
++            if(!first)first=holder||el;
++          }
++        }
++      });
++    }
++  }
++
++  if(first){
++    try{first.scrollIntoView({behavior:'smooth',block:'center'});}catch{}
++    first.classList.add('v122-focus-ring');
++    setTimeout(()=>first.classList.remove('v122-focus-ring'),1600);
++    const focusable=first.querySelector?.('input,select,textarea')||first;
++    try{focusable.focus?.({preventScroll:true});}catch{}
++  }
++  return {ok:missing.length===0,missing,first};
++}
++
++/* One shared gate: name every missing field instead of a single generic line. */
++function stageGateV122(stage){
++  const r=validateStageV122(stage);
++  if(!r.ok){
++    const list=r.missing.slice(0,8).map(x=>'• '+esc(x)).join('<br>');
++    const more=r.missing.length>8?`<br>…and ${r.missing.length-8} more`:'';
++    note('workflowNotice',
++      `<b>${r.missing.length} required field${r.missing.length===1?'':'s'} still empty:</b><br>${list}${more}`,
++      'error');
++    toastV122(`${r.missing.length} required field${r.missing.length===1?'':'s'} missing`,'err');
++  }
++  return r.ok;
++}
++
++/* ---------- 7 + 3: Materials and Other Special Fees inside Diagnosis ---------- */
++function diagMaterialCardV122(item={}){
++  const id=item.id||safeId();
++  return `<div class="diag-item" data-kind="materials" data-id="${esc(id)}">
++    <div class="grid g4">
++      <div class="field"><label>Material name *</label><input data-k="name" value="${esc(item.name||'')}"></div>
++      <div class="field"><label>Quantity *</label><input data-k="quantity" type="number" min="0.01" step="0.01" value="${esc(item.quantity??1)}"></div>
++      <div class="field"><label>Unit / source cost ($) *</label><input data-k="unit_price" type="number" min="0" step="0.01" value="${esc(item.unit_price??'')}"></div>
++      <div class="field"><label>Store / source</label><input data-k="source" value="${esc(item.source||'')}"></div>
++    </div>
++    <div class="stage-actions" style="justify-content:flex-start">
++      <button type="button" class="btn danger small" onclick="removeDiagnosisItemV122('materials','${esc(id)}')">Remove material</button>
++    </div></div>`;
++}
++function diagFeeCardV122(item={}){
++  const id=item.id||safeId();
++  return `<div class="diag-item" data-kind="shipping" data-id="${esc(id)}">
++    <div class="grid g2">
++      <div class="field"><label>Special fee description *</label><input data-k="name" value="${esc(item.name||item.description||'')}" placeholder="Permit, parking, delivery, disposal, or other approved fee"></div>
++      <div class="field"><label>Fee amount ($) *</label><input data-k="amount" type="number" min="0" step="0.01" value="${esc(item.amount??'')}"></div>
++    </div>
++    <div class="stage-actions" style="justify-content:flex-start">
++      <button type="button" class="btn danger small" onclick="removeDiagnosisItemV122('shipping','${esc(id)}')">Remove fee</button>
++    </div></div>`;
++}
++
++function addDiagnosisItemV122(kind){
++  const d=collectDiagnosis();
++  d[kind]=Array.isArray(d[kind])?d[kind]:[];
++  d[kind].push({id:safeId(),...(kind==='materials'?{quantity:1}:{})});
++  setLocalStageData('diagnosis',d);
++  renderDiagnosis();
++}
++function removeDiagnosisItemV122(kind,id){
++  const d=collectDiagnosis();
++  d[kind]=(d[kind]||[]).filter(x=>String(x.id)!==String(id));
++  setLocalStageData('diagnosis',d);
++  renderDiagnosis();
++}
++
++/* Render the two new sections in the same order the Quote stage uses:
++   Parts → Materials → Equipment → Other Special Fees. */
++const _v122RenderDiagnosis=renderDiagnosis;
++renderDiagnosis=function(){
++  const r=_v122RenderDiagnosis();
++  const stage=document.getElementById('stageContent');
++  if(!stage||document.getElementById('d_materials'))return r;
++  const d=stageData('diagnosis');
++  const equipmentBox=document.getElementById('d_equipment');
++  if(!equipmentBox)return r;
++
++  const materials=Array.isArray(d.materials)?d.materials:[];
++  const fees=Array.isArray(d.shipping)?d.shipping:[];
++
++  /* Materials goes BEFORE Equipment, matching the Quote stage order. */
++  const matWrap=document.createElement('div');
++  matWrap.innerHTML=`<div class="section" style="margin-top:22px"><h2>Materials <span class="badge b-new">${materials.length}</span></h2></div>
++    <div id="d_materials">${materials.map(diagMaterialCardV122).join('')}</div>
++    <div class="stage-actions" style="justify-content:flex-start;margin-top:10px">
++      <button class="btn primary" type="button" onclick="addDiagnosisItemV122('materials')">+ Add another material</button>
++    </div>`;
++  const equipmentHeading=equipmentBox.previousElementSibling;
++  (equipmentHeading||equipmentBox).insertAdjacentElement('beforebegin',matWrap);
++
++  /* Other Special Fees goes AFTER Equipment. */
++  const feeWrap=document.createElement('div');
++  feeWrap.innerHTML=`<div class="section" style="margin-top:22px"><h2>Other Special Fees <span class="badge b-new">${fees.length}</span></h2></div>
++    <div id="d_fees">${fees.map(diagFeeCardV122).join('')}</div>
++    <div class="stage-actions" style="justify-content:flex-start;margin-top:10px">
++      <button class="btn primary" type="button" onclick="addDiagnosisItemV122('shipping')">+ Add another special fee</button>
++    </div>`;
++  const afterEquipment=equipmentBox.nextElementSibling;   // the "+ Add another equipment" row
++  (afterEquipment||equipmentBox).insertAdjacentElement('afterend',feeWrap);
++  return r;
++};
++
++/* 3 — make sure the new sections are part of what Save persists. */
++const _v122CollectDiagnosis=collectDiagnosis;
++collectDiagnosis=function(){
++  const d=_v122CollectDiagnosis();
++  d.materials=collectDiagnosisItems('materials');
++  d.shipping=collectDiagnosisItems('shipping').map(x=>({...x,description:x.name||x.description||''}));
++  /* v11.44 hard-coded helper_total_cost to 0, silently discarding whatever the
++     dispatcher typed into the still-visible Helper Total Cost box. Persist the
++     real number when the field is on screen. */
++  if(document.getElementById('d_helper_cost')){
++    const helper=asNumber('d_helper_cost');
++    if(helper!==null)d.helper_total_cost=helper;
++  }
++  return d;
++};
++
++/* Feed the new Diagnosis rows into the Quote builder so the two stages agree. */
++const _v122QuoteDefaults=quoteBuilderDefaults;
++quoteBuilderDefaults=function(wo,diagnosis,approval){
++  const q=_v122QuoteDefaults(wo,diagnosis,approval);
++  const savedMaterials=Array.isArray(q.materials)?q.materials:[];
++  const savedShipping=Array.isArray(q.shipping)?q.shipping:[];
++  if((diagnosis.materials||[]).length){
++    /* syncDiagnosisQuoteItems' non-parts branch reads source.cost and pins
++       quantity to 1, which is right for Equipment but wrong for Materials —
++       it zeroed the unit cost and lost the quantity. Map Materials directly. */
++    const usedM=new Set();
++    const syncedM=(diagnosis.materials||[]).map(src=>{
++      const match=savedMaterials.find((x,i)=>!usedM.has(i)&&String(x.source_diagnosis_id||'')===String(src.id||''));
++      if(match)usedM.add(savedMaterials.indexOf(match));
++      return {id:match?.id||safeId(),source_diagnosis_id:String(src.id||''),
++              description:src.name||src.description||'',
++              quantity:Number(src.quantity||1),
++              unit_cost:moneyValue(src.unit_price)};
++    });
++    q.materials=[...syncedM,...savedMaterials.filter((x,i)=>!usedM.has(i)&&!x.source_diagnosis_id)];
++  }
++  if((diagnosis.shipping||[]).length){
++    const used=new Set();
++    const synced=(diagnosis.shipping||[]).map(src=>{
++      const match=savedShipping.find((x,i)=>!used.has(i)&&String(x.source_diagnosis_id||'')===String(src.id||''));
++      if(match)used.add(savedShipping.indexOf(match));
++      return {id:match?.id||safeId(),source_diagnosis_id:String(src.id||''),
++              description:src.name||src.description||'',amount:moneyValue(src.amount)};
++    });
++    q.shipping=[...synced,...savedShipping.filter((x,i)=>!used.has(i)&&!x.source_diagnosis_id)];
++  }
++  return q;
++};
++
++/* ---------- 2 + 8: wrap the stage save actions ---------- */
++function wrapStageSaveV122(name,stage,successLabel){
++  const original=window[name];
++  if(typeof original!=='function')return;
++  window[name]=async function(complete,...rest){
++    const btn=activeButtonV122();
++    if(complete&&!stageGateV122(stage))return;
++    clearFieldErrorsV122();
++    const before=(document.getElementById('workflowNotice')?.className||'');
++    const result=await original.call(this,complete,...rest);
++    const noticeEl=document.getElementById('workflowNotice');
++    const failed=/error/.test(noticeEl?.className||'')&&(noticeEl?.className||'')!==before;
++    if(failed){toastV122('Save failed — see the message above','err');}
++    else{
++      flashButtonV122(btn,'Saved ✓');
++      toastV122(complete?successLabel:'Draft saved');
++    }
++    return result;
++  };
++}
++wrapStageSaveV122('saveArrival','arrival','Arrival saved');
++wrapStageSaveV122('saveDiagnosis','diagnosis','Diagnosis saved');
++wrapStageSaveV122('saveCompletion','completion','Work Done saved');
++
++/* SYNCHRONIZE buttons get the same confirmation. */
++for(const fnName of ['synchronizeFromDiagnosis','synchronizeFromQuote','synchronizeFromPayment']){
++  const original=window[fnName];
++  if(typeof original!=='function')continue;
++  window[fnName]=async function(...args){
++    const btn=activeButtonV122();
++    try{
++      const r=await original.apply(this,args);
++      flashButtonV122(btn,'Synchronized ✓');
++      toastV122('Stages synchronized');
++      return r;
++    }catch(e){
++      toastV122('Synchronize failed: '+String(e?.message||e),'err');
++      throw e;
++    }
++  };
++}
++
++/* Clear a field's error as soon as the dispatcher starts fixing it. */
++document.addEventListener('input',e=>{
++  const holder=e.target.closest?.('.v122-invalid');
++  if(!holder)return;
++  holder.classList.remove('v122-invalid');
++  holder.querySelector('.v122-field-msg')?.remove();
++},true);
++document.addEventListener('change',e=>{
++  const holder=e.target.closest?.('.v122-invalid');
++  if(!holder)return;
++  holder.classList.remove('v122-invalid');
++  holder.querySelector('.v122-field-msg')?.remove();
++},true);
++
+ </script>
+ </body>
